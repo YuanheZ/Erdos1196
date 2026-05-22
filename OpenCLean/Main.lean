@@ -2282,7 +2282,6 @@ lemma mangoldt_tail_integrand_factor_local (n N : ℕ) (t : ℝ) (hn : 2 ≤ n) 
     rw [Real.rpow_add hq_pos (1 : ℝ) t, Real.rpow_one]
     rw [Real.rpow_neg hq_pos.le t]
     field_simp [hq_pos.ne', (Real.rpow_pos_of_pos hq_pos t).ne']
-    ring
   · simp [hqcond]
 
 @[blueprint "lem:mangoldt-tail-range-subinvariant-local"
@@ -2353,9 +2352,18 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
         hbase_int.const_mul (ArithmeticFunction.vonMangoldt q / (q : ℝ))
     · simpa [hqcond]
   have hF_int : MeasureTheory.IntegrableOn F (Set.Ioi 0) := by
-    dsimp [F, MeasureTheory.IntegrableOn]
-    simpa [Finset.sum_apply] using
+    have hF_int' : MeasureTheory.Integrable
+        (∑ q ∈ Finset.range N, fun t : ℝ =>
+          if (2 : ℝ) ≤ (q : ℝ) then
+            (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
+              (t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
+          else 0)
+        (MeasureTheory.volume.restrict (Set.Ioi 0)) :=
       MeasureTheory.integrable_finset_sum' (Finset.range N) hterm_int
+    dsimp [F, MeasureTheory.IntegrableOn]
+    convert hF_int' using 1
+    funext t
+    simp [Finset.sum_apply]
   have hG_int : MeasureTheory.IntegrableOn
       (fun t : ℝ => Real.exp (-(Real.log (n : ℝ) * t))) (Set.Ioi 0) := by
     have hrate : -Real.log (n : ℝ) < 0 := by linarith
