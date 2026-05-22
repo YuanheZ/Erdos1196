@@ -2224,8 +2224,10 @@ lemma mangoldt_tail_term_integral_local (m q : ℕ) (hm : 1 ≤ m) (hq : 2 ≤ q
     have hfun : (fun t : ℝ => t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) =
         fun t : ℝ => t * Real.exp (-(Real.log (((m * q : ℕ) : ℝ)) * t)) := by
       funext t
+      change t * (((m * q : ℕ) : ℝ) ^ (-t)) =
+        t * Real.exp (-(Real.log (((m * q : ℕ) : ℝ)) * t))
       rw [Real.rpow_def_of_pos hmq_pos]
-      ring
+      ring_nf
     rw [hfun]
     exact log_square_integral_kernel_local
       (Real.log (((m * q : ℕ) : ℝ))) hlog_pos
@@ -2276,7 +2278,6 @@ lemma mangoldt_tail_integrand_factor_local (n N : ℕ) (t : ℝ) (hn : 2 ≤ n) 
     have hq_pos : 0 < (q : ℝ) := by
       exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_two hq_nat)
     simp [hqcond]
-    rw [Nat.cast_mul]
     rw [Real.mul_rpow hn_pos.le hq_pos.le]
     rw [Real.rpow_add hq_pos (1 : ℝ) t, Real.rpow_one]
     field_simp [hq_pos.ne', (Real.rpow_pos_of_pos hq_pos t).ne']
@@ -2341,8 +2342,10 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
         have hfun : (fun t : ℝ => t * Real.rpow (((n * q : ℕ) : ℝ)) (-t)) =
             fun t : ℝ => t * Real.exp (-(Real.log (((n * q : ℕ) : ℝ)) * t)) := by
           funext t
+          change t * (((n * q : ℕ) : ℝ) ^ (-t)) =
+            t * Real.exp (-(Real.log (((n * q : ℕ) : ℝ)) * t))
           rw [Real.rpow_def_of_pos hnq_pos]
-          ring
+          ring_nf
         rw [hfun]
         exact h
       simpa [hqcond] using
@@ -2350,7 +2353,7 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
     · simpa [hqcond]
   have hF_int : MeasureTheory.IntegrableOn F (Set.Ioi 0) := by
     dsimp [F, MeasureTheory.IntegrableOn]
-    exact MeasureTheory.integrable_finsetSum (Finset.range N) hterm_int
+    exact MeasureTheory.integrable_finset_sum' (Finset.range N) hterm_int
   have hG_int : MeasureTheory.IntegrableOn
       (fun t : ℝ => Real.exp (-(Real.log (n : ℝ) * t))) (Set.Ioi 0) := by
     have hrate : -Real.log (n : ℝ) < 0 := by linarith
@@ -2380,7 +2383,7 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
       _ = ∫ t : ℝ in Set.Ioi 0, F t := by
         symm
         dsimp [F]
-        exact MeasureTheory.integral_finsetSum (Finset.range N) hterm_int
+        exact MeasureTheory.integral_finset_sum (Finset.range N) hterm_int
   have hpoint : ∀ t ∈ Set.Ioi (0 : ℝ),
       F t ≤ Real.exp (-(Real.log (n : ℝ) * t)) := by
     intro t ht
@@ -2400,10 +2403,10 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
         exact mul_le_mul_of_nonneg_left hdir hcoef_nonneg
       _ = Real.rpow (n : ℝ) (-t) := by
         field_simp [htpos.ne']
-        ring
       _ = Real.exp (-(Real.log (n : ℝ) * t)) := by
+        change ((n : ℝ) ^ (-t)) = Real.exp (-(Real.log (n : ℝ) * t))
         rw [Real.rpow_def_of_pos hn_pos]
-        ring
+        ring_nf
   have hintegral_le :
       (∫ t : ℝ in Set.Ioi 0, F t) ≤
         ∫ t : ℝ in Set.Ioi 0, Real.exp (-(Real.log (n : ℝ) * t)) := by
