@@ -2100,7 +2100,7 @@ lemma mangoldt_dirichlet_series_summable_local :
     · rw [LSeries.term_of_ne_zero hq]
       rw [Complex.ofReal_div]
       congr 1
-      exact Complex.ofReal_cpow (Nat.cast_nonneg q) (1 + u)
+      exact (Complex.ofReal_cpow (Nat.cast_nonneg q) (1 + u)).symm
   exact Complex.summable_ofReal.mp hcomplex'
 
 @[blueprint "lem:mangoldt-dirichlet-series-finite-threshold-bound-local"
@@ -2155,7 +2155,17 @@ lemma log_square_integral_kernel_local (r : ℝ) (hr : 0 < r) :
     (∫ t : ℝ in Set.Ioi 0, t * Real.exp (-(r * t))) = 1 / r ^ 2 := by
   have h := Real.integral_rpow_mul_exp_neg_mul_Ioi
     (a := (2 : ℝ)) (r := r) (by norm_num) hr
-  simpa [Real.Gamma_two, one_div, pow_two] using h
+  calc
+    (∫ t : ℝ in Set.Ioi 0, t * Real.exp (-(r * t))) =
+        ∫ t : ℝ in Set.Ioi 0,
+          t ^ ((2 : ℝ) - 1) * Real.exp (-(r * t)) := by
+      apply MeasureTheory.setIntegral_congr_fun measurableSet_Ioi
+      intro t ht
+      norm_num [Real.rpow_one]
+    _ = (1 / r) ^ (2 : ℝ) * Real.Gamma 2 := h
+    _ = 1 / r ^ 2 := by
+      rw [Real.Gamma_two, Real.rpow_two]
+      field_simp [hr.ne']
 
 @[blueprint "lem:log-square-integral-kernel-integrable-local"
   (statement := /-- For every real number $r>0$, the function
@@ -2174,14 +2184,14 @@ lemma log_square_integral_kernel_integrable_local (r : ℝ) (hr : 0 < r) :
   have hrate_neg : -r - r / 2 < 0 := by linarith
   have hint_pos : MeasureTheory.Integrable
       (fun t : ℝ => Real.exp ((-r + r / 2) * t))
-      (volume.restrict (Set.Ioi 0)) :=
+      (MeasureTheory.volume.restrict (Set.Ioi 0)) :=
     integrableOn_exp_mul_Ioi hrate_pos 0
   have hint_neg : MeasureTheory.Integrable
       (fun t : ℝ => Real.exp ((-r - r / 2) * t))
-      (volume.restrict (Set.Ioi 0)) :=
+      (MeasureTheory.volume.restrict (Set.Ioi 0)) :=
     integrableOn_exp_mul_Ioi hrate_neg 0
   have h := ProbabilityTheory.integrable_pow_mul_exp_of_integrable_exp_mul
-    (μ := volume.restrict (Set.Ioi 0))
+    (μ := MeasureTheory.volume.restrict (Set.Ioi 0))
     (X := fun t : ℝ => t) (v := -r) (t := r / 2)
     hhalf_ne hint_pos hint_neg 1
   simpa [pow_one, mul_comm, mul_left_comm, mul_assoc] using h
@@ -2211,11 +2221,14 @@ lemma mangoldt_tail_term_integral_local (m q : ℕ) (hm : 1 ≤ m) (hq : 2 ≤ q
       (∫ t : ℝ in Set.Ioi 0,
         t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) =
         1 / Real.log (((m * q : ℕ) : ℝ)) ^ 2 := by
-    convert log_square_integral_kernel_local
-      (Real.log (((m * q : ℕ) : ℝ))) hlog_pos using 1
-    ext t
-    rw [Real.rpow_def_of_pos hmq_pos]
-    ring
+    have hfun : (fun t : ℝ => t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) =
+        fun t : ℝ => t * Real.exp (-(Real.log (((m * q : ℕ) : ℝ)) * t)) := by
+      funext t
+      rw [Real.rpow_def_of_pos hmq_pos]
+      ring
+    rw [hfun]
+    exact log_square_integral_kernel_local
+      (Real.log (((m * q : ℕ) : ℝ))) hlog_pos
   calc
     mangoldt_tail_term m q =
         (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
@@ -2252,7 +2265,7 @@ lemma mangoldt_tail_integrand_factor_local (n N : ℕ) (t : ℝ) (hn : 2 ≤ n) 
           if (2 : ℝ) ≤ (q : ℝ) then
             ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + t)
           else 0) := by
-  rw [mul_assoc, Finset.mul_sum]
+  rw [Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro q hq
   by_cases hqcond : (2 : ℝ) ≤ (q : ℝ)
@@ -2309,7 +2322,7 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
             (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
               (t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
           else 0)
-        (volume.restrict (Set.Ioi 0)) := by
+        (MeasureTheory.volume.restrict (Set.Ioi 0)) := by
     intro q hq
     by_cases hqcond : (2 : ℝ) ≤ (q : ℝ)
     · have hq_nat : 2 ≤ q := by
@@ -2325,10 +2338,13 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
           (Set.Ioi 0) := by
         have h := log_square_integral_kernel_integrable_local
           (Real.log (((n * q : ℕ) : ℝ))) hlog_nq_pos
-        convert h using 1
-        ext t
-        rw [Real.rpow_def_of_pos hnq_pos]
-        ring
+        have hfun : (fun t : ℝ => t * Real.rpow (((n * q : ℕ) : ℝ)) (-t)) =
+            fun t : ℝ => t * Real.exp (-(Real.log (((n * q : ℕ) : ℝ)) * t)) := by
+          funext t
+          rw [Real.rpow_def_of_pos hnq_pos]
+          ring
+        rw [hfun]
+        exact h
       simpa [hqcond] using
         hbase_int.const_mul (ArithmeticFunction.vonMangoldt q / (q : ℝ))
     · simpa [hqcond]
@@ -2339,7 +2355,7 @@ lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
       (fun t : ℝ => Real.exp (-(Real.log (n : ℝ) * t))) (Set.Ioi 0) := by
     have hrate : -Real.log (n : ℝ) < 0 := by linarith
     convert integrableOn_exp_mul_Ioi hrate 0 using 1
-    ext t
+    funext t
     ring
   have hsum_integral :
       (∑ q ∈ Finset.range N,
