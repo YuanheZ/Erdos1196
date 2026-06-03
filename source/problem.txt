@@ -1,0 +1,4 @@
+\begin{theorem}[\Erdos{}--S\'ark\"ozy--Szemer\'edi, \#1196] \label{conj:1196}
+If $A$ is a primitive set contained in $[x,\infty)$ for some $x \geq 2$, then
+$$f(A) \leq 1 + O\left(\frac{1}{\log x}\right).$$
+\end{theorem}
