@@ -1,3 +1,4 @@
+
 import Mathlib
 import Architect
 
@@ -57,15 +58,6 @@ def supported_in_interval (A : Set ℕ) (x X : ℝ) : Prop :=
 noncomputable def mangoldt_reciprocal_partial_sum (t : ℝ) : ℝ :=
   ∑' q : ℕ,
     if 1 ≤ q ∧ (q : ℝ) ≤ t then ArithmeticFunction.vonMangoldt q / (q : ℝ) else 0
-
-@[blueprint "def:mangoldt-dirichlet-series"
-  (statement := /-- For $u>0$, this is the real Dirichlet series
-  $\sum_q \Lambda(q)q^{-1-u}$ used in the proof of the non-asymptotic
-  sub-invariance estimate. -/)
-  (title := /-- Von Mangoldt Dirichlet series -/)
-  (latexEnv := "definition")]
-noncomputable def mangoldt_dirichlet_series (u : ℝ) : ℝ :=
-  ∑' q : ℕ, ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + u)
 
 @[blueprint "def:mangoldt-tail-term"
   (statement := /-- For natural numbers $m$ and $q$, this is the summand
@@ -413,956 +405,6 @@ lemma mertens_von_mangoldt_reciprocal :
       _ ≤ |(∑ q ∈ Finset.Icc 1 N, ArithmeticFunction.vonMangoldt q / (q : ℝ)) - Real.log (N : ℝ)| +
             |Real.log (N : ℝ) - Real.log t| := abs_add_le _ _
       _ ≤ Cnat + Real.log (2 : ℝ) := add_le_add hnat' hlogdiff
-
-@[blueprint "def:dirichlet-eta-real"
-  (statement := /-- For a real parameter $s$, the real Dirichlet eta function is
-  the real value of $(1-2^{1-s})\zeta(s)$ on the real axis.  In Lean this is
-  represented as the real part of the corresponding complex expression. -/)
-  (title := /-- Real Dirichlet eta function -/)
-  (latexEnv := "definition")]
-noncomputable def dirichlet_eta_real (s : ℝ) : ℝ :=
-  (((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (s : ℂ))) * riemannZeta (s : ℂ)).re
-
-@[blueprint "lem:dirichlet-eta-positive"
-  (statement := /-- For every real $s>1$, the real Dirichlet eta value
-  $\eta(s)$ of \cref{def:dirichlet-eta-real} is strictly positive. -/)
-  (proof := /-- Fix a real number $s$ with $1<s$.  By
-  \cref{def:dirichlet-eta-real} and the real-base complex-power identity, the
-  factor $2^{1-s}$ in the complex expression is the real number $2^{1-s}$.
-  Since $1-s<0$ and $2>1$, one has $2^{1-s}<1$, and therefore
-  $1-2^{1-s}>0$.  The standard positivity theorem for the Riemann zeta function
-  on the half-line $s>1$ gives $\operatorname{Re}\zeta(s)>0$.  The complex
-  power factor is real, so the real part of $(1-2^{1-s})\zeta(s)$ is
-  $(1-2^{1-s})\operatorname{Re}\zeta(s)$, a product of two strictly positive
-  real numbers. -/)
-  (title := /-- Positivity of eta on the half-line $s>1$ -/)
-  (latexEnv := "lemma")]
-lemma dirichlet_eta_positive :
-    ∀ s : ℝ, 1 < s -> 0 < dirichlet_eta_real s := by
-  intro s hs
-  unfold dirichlet_eta_real
-  have hpow : (2 : ℂ) ^ ((1 : ℂ) - (s : ℂ)) = (((2 : ℝ) ^ (1 - s) : ℝ) : ℂ) := by
-    symm
-    simpa using (Complex.ofReal_cpow (x := (2 : ℝ)) (by norm_num) (1 - s))
-  have hfactor_pos : 0 < (1 : ℝ) - (2 : ℝ) ^ (1 - s) := by
-    have hlt : (2 : ℝ) ^ (1 - s) < 1 :=
-      Real.rpow_lt_one_of_one_lt_of_neg (by norm_num) (by linarith)
-    linarith
-  have hzeta_pos : 0 < (riemannZeta (s : ℂ)).re := riemannZeta_re_pos_of_one_lt hs
-  rw [hpow]
-  simpa [Complex.mul_re] using mul_pos hfactor_pos hzeta_pos
-
-@[blueprint "lem:dirichlet-eta-mellin-transform"
-  (statement := /-- For every real $s>1$, the real Dirichlet eta value of
-  \cref{def:dirichlet-eta-real} is the normalized Mellin transform
-  $$
-    \eta(s)=\Gamma(s)^{-1}\int_0^\infty {x^{s-1}\over e^x+1}\,dx.
-  $$ -/)
-  (proof := /-- Fix $s>1$.  For every $x>0$, the geometric expansion
-  $(e^x+1)^{-1}=\sum_{n=0}^\infty (-1)^n e^{-(n+1)x}$ is summable, and the
-  exponential decay gives the summability needed to integrate the series term
-  by term against $x^{s-1}\,dx$ on $(0,\infty)$.  The Mellin integral of the
-  $n$th term is $(-1)^n\Gamma(s)/(n+1)^s$.  Hence the integral is
-  $\Gamma(s)\sum_{n=0}^\infty (-1)^n/(n+1)^s$.  For $s>1$ this alternating
-  Dirichlet series is absolutely convergent after grouping even and odd terms,
-  and its value is $(1-2^{1-s})\zeta(s)$.  Dividing by $\Gamma(s)$ gives
-  precisely the real value specified by \cref{def:dirichlet-eta-real}. -/)
-  (title := /-- Mellin transform formula for eta -/)
-  (latexEnv := "lemma")]
-lemma dirichlet_eta_mellin_transform :
-    ∀ s : ℝ, 1 < s ->
-      dirichlet_eta_real s =
-        (1 / Real.Gamma s) *
-          ∫ x : ℝ in Set.Ioi (0 : ℝ), x ^ (s - 1) / (Real.exp x + 1) := by
-  intro s hs
-  let S : ℂ := s
-  have hgeom :
-      ∀ t ∈ Set.Ioi (0 : ℝ),
-        HasSum (fun n : ℕ => ((-1 : ℂ) ^ n) * Real.exp (-(n + 1 : ℝ) * t))
-          ((1 : ℂ) / (Real.exp t + 1)) := by
-    intro t ht
-    have htpos : 0 < t := ht
-    have hnorm : ‖(-((Real.exp (-t) : ℝ) : ℂ))‖ < 1 := by
-      rw [norm_neg, Complex.norm_real, Real.norm_eq_abs, Real.abs_exp, Real.exp_neg]
-      bound
-    convert
-      ((hasSum_geometric_of_norm_lt_one (ξ := -((Real.exp (-t) : ℝ) : ℂ)) hnorm).mul_left
-        ((Real.exp (-t) : ℝ) : ℂ)) using 1
-    · ext n
-      rw [show -(↑n + 1) * t = -t + ↑n * (-t) by ring]
-      simp [Real.exp_add, Real.exp_nat_mul, mul_comm, mul_left_comm, mul_assoc]
-      rw [show -(↑t * ↑n : ℂ) = ↑n * (-↑t) by ring, Complex.exp_nat_mul]
-      ring
-    · rw [Real.exp_neg]
-      let E : ℂ := ↑(Real.exp t)
-      have hE : E ≠ 0 := by
-        dsimp [E]
-        exact_mod_cast Real.exp_ne_zero t
-      have hE1 : E + 1 ≠ 0 := by
-        dsimp [E]
-        norm_cast
-        positivity
-      have halg : 1 / (E + 1) = E⁻¹ * (1 - -E⁻¹)⁻¹ := by
-        rw [sub_neg_eq_add]
-        field_simp [hE, hE1]
-      simpa [E] using halg
-  have hsum :
-      Summable (fun n : ℕ => ‖((-1 : ℂ) ^ n)‖ / ((n + 1 : ℝ)) ^ S.re) := by
-    convert (Real.summable_one_div_nat_add_rpow 1 s).2 hs using 1
-    ext n
-    simp [S, abs_of_nonneg (show 0 ≤ (n : ℝ) + 1 by positivity)]
-  have hs0 : 0 < S.re := by
-    dsimp [S]
-    exact lt_trans zero_lt_one hs
-  have hp : ∀ n : ℕ, ((-1 : ℂ) ^ n) = 0 ∨ 0 < (n + 1 : ℝ) := by
-    intro n
-    right
-    positivity
-  have hmellin :
-      HasSum
-        (fun n : ℕ => Complex.Gamma S * ((-1 : ℂ) ^ n) / ((n + 1 : ℝ) : ℂ) ^ S)
-        (mellin (fun t : ℝ => (1 : ℂ) / (Real.exp t + 1)) S) := by
-    exact hasSum_mellin hp hs0 hgeom hsum
-  have hmellin_real :
-      mellin (fun t : ℝ => (1 : ℂ) / (Real.exp t + 1)) S =
-        ((∫ x : ℝ in Set.Ioi (0 : ℝ), x ^ (s - 1) / (Real.exp x + 1) : ℝ) : ℂ) := by
-    rw [mellin]
-    simp only [smul_eq_mul]
-    rw [← integral_complex_ofReal]
-    refine MeasureTheory.setIntegral_congr_fun measurableSet_Ioi ?_
-    intro x hx
-    have hxpos : 0 < x := hx
-    have hpow : (x : ℂ) ^ (S - 1) = ((x ^ (s - 1) : ℝ) : ℂ) := by
-      dsimp [S]
-      symm
-      simpa using (Complex.ofReal_cpow (x := x) hxpos.le (s - 1))
-    simpa [hpow, div_eq_mul_inv]
-  have hcomplex :
-      mellin (fun t : ℝ => (1 : ℂ) / (Real.exp t + 1)) S =
-        Complex.Gamma S * (((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - S)) * riemannZeta S) := by
-    have hs1 : 1 < S.re := by
-      simpa [S] using hs
-    have hf : Summable (fun n : ℕ => 1 / (((n + 1 : ℕ) : ℂ) ^ S)) := by
-      simpa using
-        (summable_nat_add_iff (f := fun n : ℕ => 1 / ((n : ℂ) ^ S)) 1).2
-          (Complex.summable_one_div_nat_cpow.mpr hs1)
-    have hzeta_nat : riemannZeta S = ∑' n : ℕ, 1 / (((n + 1 : ℕ) : ℂ) ^ S) := by
-      simpa using zeta_eq_tsum_one_div_nat_add_one_cpow (s := S) hs1
-    have hg : Summable (fun n : ℕ => ((-1 : ℂ) ^ n) / (((n + 1 : ℕ) : ℂ) ^ S)) := by
-      apply Summable.of_norm
-      convert hsum using 1
-      ext n
-      have hbase : (((n + 1 : ℕ) : ℂ)) = ((((n + 1 : ℕ) : ℝ) : ℂ)) := by
-        norm_num
-      rw [hbase, norm_div, Complex.norm_cpow_eq_rpow_re_of_pos (x := ((n + 1 : ℕ) : ℝ))
-        (by positivity) S]
-      simp [S, Nat.cast_add, Nat.cast_one, div_eq_mul_inv]
-    have hinj_even : Function.Injective (fun n : ℕ => 2 * n) := by
-      exact mul_right_injective₀ (by norm_num : (2 : ℕ) ≠ 0)
-    have hinj_odd : Function.Injective (fun n : ℕ => 2 * n + 1) := by
-      intro a b h
-      exact hinj_even (Nat.succ.inj h)
-    have heven_scaled :
-        (∑' n : ℕ, 1 / (((2 * n + 2 : ℕ) : ℂ) ^ S)) =
-          (2 : ℂ) ^ (-S) * riemannZeta S := by
-      rw [hzeta_nat]
-      rw [← tsum_mul_left]
-      congr 1
-      ext n
-      rw [show (2 * n + 2 : ℕ) = 2 * (n + 1) by ring]
-      rw [show (((2 * (n + 1) : ℕ) : ℂ) ^ S) =
-          (2 : ℂ) ^ S * (((n + 1 : ℕ) : ℂ) ^ S) by
-        simpa using (Complex.natCast_mul_natCast_cpow 2 (n + 1) S)]
-      rw [Complex.cpow_neg]
-      field_simp [Complex.natCast_add_one_cpow_ne_zero 1 S,
-        Complex.natCast_add_one_cpow_ne_zero n S]
-    have hzeta_split :
-        (∑' n : ℕ, 1 / (((2 * n + 1 : ℕ) : ℂ) ^ S)) +
-          (∑' n : ℕ, 1 / (((2 * n + 2 : ℕ) : ℂ) ^ S)) = riemannZeta S := by
-      rw [hzeta_nat]
-      simpa [Nat.add_assoc] using
-        (tsum_even_add_odd
-          (f := fun k : ℕ => 1 / (((k + 1 : ℕ) : ℂ) ^ S))
-          (hf.comp_injective hinj_even) (hf.comp_injective hinj_odd))
-    have heta_split :
-        (∑' n : ℕ, ((-1 : ℂ) ^ n) / (((n + 1 : ℕ) : ℂ) ^ S)) =
-          (∑' n : ℕ, 1 / (((2 * n + 1 : ℕ) : ℂ) ^ S)) -
-            (∑' n : ℕ, 1 / (((2 * n + 2 : ℕ) : ℂ) ^ S)) := by
-      rw [← tsum_even_add_odd
-        (f := fun k : ℕ => ((-1 : ℂ) ^ k) / (((k + 1 : ℕ) : ℂ) ^ S))
-        (hg.comp_injective hinj_even) (hg.comp_injective hinj_odd)]
-      rw [sub_eq_add_neg, ← tsum_neg]
-      congr 1
-      · apply tsum_congr
-        intro n
-        simp [pow_mul]
-      · apply tsum_congr
-        intro n
-        rw [show (2 * n + 1 + 1 : ℕ) = 2 * n + 2 by ring]
-        simp [pow_succ, pow_mul, div_eq_mul_inv]
-    have htwo : (2 : ℂ) ^ ((1 : ℂ) - S) = 2 * (2 : ℂ) ^ (-S) := by
-      rw [show ((1 : ℂ) - S) = 1 + (-S) by ring]
-      rw [Complex.cpow_add _ _ (by norm_num : (2 : ℂ) ≠ 0), Complex.cpow_one]
-    have heta_tsum :
-        (∑' n : ℕ, ((-1 : ℂ) ^ n) / (((n + 1 : ℕ) : ℂ) ^ S)) =
-          ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - S)) * riemannZeta S := by
-      rw [heta_split]
-      rw [show (∑' n : ℕ, 1 / (((2 * n + 1 : ℕ) : ℂ) ^ S)) -
-          (∑' n : ℕ, 1 / (((2 * n + 2 : ℕ) : ℂ) ^ S)) =
-          ((∑' n : ℕ, 1 / (((2 * n + 1 : ℕ) : ℂ) ^ S)) +
-            (∑' n : ℕ, 1 / (((2 * n + 2 : ℕ) : ℂ) ^ S))) -
-            2 * (∑' n : ℕ, 1 / (((2 * n + 2 : ℕ) : ℂ) ^ S)) by ring]
-      rw [hzeta_split, heven_scaled, htwo]
-      ring
-    rw [← hmellin.tsum_eq]
-    rw [← heta_tsum]
-    rw [← tsum_mul_left]
-    congr 1
-    ext n
-    simp [div_eq_mul_inv]
-    ring
-  have hInt :
-      (∫ x : ℝ in Set.Ioi (0 : ℝ), x ^ (s - 1) / (Real.exp x + 1)) =
-        Real.Gamma s * dirichlet_eta_real s := by
-    have hcomplex' :
-        ((∫ x : ℝ in Set.Ioi (0 : ℝ), x ^ (s - 1) / (Real.exp x + 1) : ℝ) : ℂ) =
-          Complex.Gamma S * (((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - S)) * riemannZeta S) := by
-      exact hmellin_real.symm.trans hcomplex
-    have hre := congrArg Complex.re hcomplex'
-    rw [dirichlet_eta_real]
-    simp [S, Complex.Gamma_ofReal, Complex.mul_re] at hre ⊢
-    linarith
-  have hγ : Real.Gamma s ≠ 0 := (Real.Gamma_pos_of_pos (lt_trans zero_lt_one hs)).ne'
-  rw [hInt]
-  field_simp [hγ]
-
-@[blueprint "lem:gamma-logistic-expectation-eq-mellin-integral"
-  (statement := /-- For every real $s>1$, the expectation of
-  $h(x)=(1+e^{-x})^{-1}$ under `ProbabilityTheory.gammaMeasure s 1` is the
-  normalized Mellin integral
-  $$
-    \Gamma(s)^{-1}\int_0^\infty {x^{s-1}\over e^x+1}\,dx.
-  $$ -/)
-  (proof := /-- Fix $s>1$.  Unfold `ProbabilityTheory.gammaMeasure` and apply
-  the Bochner-integral formula for a measure defined by `withDensity`, with
-  density `ProbabilityTheory.gammaPDF s 1`.  The density is measurable and
-  finite because it is `ENNReal.ofReal` of the real gamma density.  Rewrite the
-  right-hand side as the integral over the whole real line of the indicator of
-  $(0,\infty)$ times the integrand
-  $\Gamma(s)^{-1}x^{s-1}/(e^x+1)$.  It remains to compare the two integrands
-  pointwise.  For $x>0$, `ProbabilityTheory.gammaPDF_of_nonneg` gives the
-  density
-  $\Gamma(s)^{-1}x^{s-1}e^{-x}$, and the identity
-  $$
-    {1\over 1+e^{-x}}\,\Gamma(s)^{-1}x^{s-1}e^{-x}
-      = \Gamma(s)^{-1}{x^{s-1}\over e^x+1}
-  $$
-  follows by clearing the nonzero denominators, using positivity of
-  $\Gamma(s)$ and of $e^x$.  For $x<0$, `ProbabilityTheory.gammaPDF_of_neg`
-  gives density zero; for $x=0$, the factor $0^{s-1}$ is zero because
-  $s-1>0$.  Hence the whole-line integral is exactly the indicated integral on
-  $(0,\infty)$, with the constant $\Gamma(s)^{-1}$ pulled out. -/)
-  (title := /-- Gamma expectation as a Mellin integral -/)
-  (latexEnv := "lemma")]
-lemma gamma_logistic_expectation_eq_mellin_integral :
-    ∀ s : ℝ, 1 < s ->
-      (∫ x : ℝ, (1 / (1 + Real.exp (-x))) ∂(ProbabilityTheory.gammaMeasure s 1)) =
-        (1 / Real.Gamma s) *
-          ∫ x : ℝ in Set.Ioi (0 : ℝ), x ^ (s - 1) / (Real.exp x + 1) := by
-  intro s hs
-  rw [ProbabilityTheory.gammaMeasure, integral_withDensity_eq_integral_toReal_smul]
-  · rw [← MeasureTheory.integral_const_mul,
-      ← MeasureTheory.integral_indicator (measurableSet_Ioi : MeasurableSet (Set.Ioi (0 : ℝ)))]
-    apply MeasureTheory.integral_congr_ae
-    filter_upwards with x
-    by_cases hx : 0 < x
-    · have hnonneg :
-          0 ≤ 1 ^ s / Real.Gamma s * x ^ (s - 1) * Real.exp (-(1 * x)) := by
-        simpa [ProbabilityTheory.gammaPDFReal, if_pos hx.le] using
-          ProbabilityTheory.gammaPDFReal_nonneg (a := s) (r := 1) (by linarith) (by norm_num) x
-      have hpdf :
-          (ProbabilityTheory.gammaPDF s 1 x).toReal =
-            1 ^ s / Real.Gamma s * x ^ (s - 1) * Real.exp (-(1 * x)) := by
-        rw [ProbabilityTheory.gammaPDF_of_nonneg hx.le]
-        exact ENNReal.toReal_ofReal hnonneg
-      have hGamma_ne : Real.Gamma s ≠ 0 := (Real.Gamma_pos_of_pos (by linarith : 0 < s)).ne'
-      rw [hpdf]
-      simp [Set.mem_Ioi, hx, Real.exp_neg, div_eq_mul_inv]
-      field_simp [hGamma_ne, Real.exp_ne_zero]
-    · have hxle : x ≤ 0 := le_of_not_gt hx
-      rcases lt_or_eq_of_le hxle with hxlt | hxeq
-      · have hpdf : ProbabilityTheory.gammaPDF s 1 x = 0 := ProbabilityTheory.gammaPDF_of_neg hxlt
-        simp [hpdf, Set.mem_Ioi, hx]
-      · subst x
-        have hsne : s - 1 ≠ 0 := by linarith
-        have hnonneg :
-            0 ≤ 1 ^ s / Real.Gamma s * (0 : ℝ) ^ (s - 1) * Real.exp (-(1 * 0)) := by
-          simp [Real.zero_rpow hsne]
-        have hpdf :
-            (ProbabilityTheory.gammaPDF s 1 0).toReal =
-              1 ^ s / Real.Gamma s * (0 : ℝ) ^ (s - 1) * Real.exp (-(1 * 0)) := by
-          rw [ProbabilityTheory.gammaPDF_of_nonneg le_rfl]
-          exact ENNReal.toReal_ofReal hnonneg
-        simp [hpdf, Set.mem_Ioi, hx, Real.zero_rpow hsne]
-  · simpa [ProbabilityTheory.gammaPDF] using
-      ENNReal.measurable_ofReal.comp (ProbabilityTheory.measurable_gammaPDFReal s 1)
-  · filter_upwards with x
-    simp [ProbabilityTheory.gammaPDF]
-
-@[blueprint "lem:dirichlet-eta-gamma-expectation"
-  (statement := /-- For every real $s>1$, the eta value of
-  \cref{def:dirichlet-eta-real} is the expectation of
-  $h(x)=(1+e^{-x})^{-1}$ against the gamma distribution of shape $s$ and
-  scale $1$.  In Lean this gamma distribution is
-  `ProbabilityTheory.gammaMeasure s 1`. -/)
-  (proof := /-- Fix $s>1$.  By
-  \cref{lem:gamma-logistic-expectation-eq-mellin-integral}, the gamma
-  expectation is
-  $$\Gamma(s)^{-1}\int_0^\infty {x^{s-1}\over e^x+1}\,dx.$$
-  By \cref{lem:dirichlet-eta-mellin-transform}, the same normalized Mellin
-  integral is the real eta value of \cref{def:dirichlet-eta-real}.  Combining
-  these two identities gives the asserted gamma-expectation representation of
-  $\eta(s)$. -/)
-  (title := /-- Gamma-expectation representation of eta -/)
-  (latexEnv := "lemma")]
-lemma dirichlet_eta_gamma_expectation :
-    ∀ s : ℝ, 1 < s ->
-      dirichlet_eta_real s =
-        ∫ x : ℝ, (1 / (1 + Real.exp (-x))) ∂(ProbabilityTheory.gammaMeasure s 1) := by
-  intro s hs
-  exact (dirichlet_eta_mellin_transform s hs).trans
-    (gamma_logistic_expectation_eq_mellin_integral s hs).symm
-
-@[blueprint "lem:gamma-logistic-expectation-mono-of-shape-le"
-  (statement := /-- For all real numbers $a$ and $b$ with $0<a\leq b$, the
-  expectation of $h(x)=(1+e^{-x})^{-1}$ under the gamma law of shape $a$ and
-  scale $1$ is at most the corresponding expectation under the gamma law of
-  shape $b$ and scale $1$. -/)
-  (proof := /-- Fix real numbers $a$ and $b$ with $0<a\leq b$, and put
-  $c=b-a$ and $K=\Gamma(a)/\Gamma(b)$.  If $b=a$, the two measures are equal.
-  Otherwise $c>0$.  The gamma density formula gives
-  $$
-    \gamma_{b,1}=\bigl(K\max(x,0)^c\bigr)\gamma_{a,1}
-  $$
-  as a measure identity.  Let $w(x)=K\max(x,0)^c$ and let
-  $t=(1/K)^{1/c}$, so that $w(t)=1$.  Both $w$ and
-  $x\mapsto(1+e^{-x})^{-1}$ are non-decreasing, hence for every real $x$,
-  $$
-    \bigl((1+e^{-x})^{-1}-(1+e^{-t})^{-1}\bigr)(w(x)-1)\geq 0.
-  $$
-  Integrating this inequality with respect to the gamma law of shape $a$,
-  expanding the product, and using the normalization
-  $\int w\,d\gamma_{a,1}=1$ gives
-  $$
-    \int (1+e^{-x})^{-1}\,d\gamma_{a,1}
-      \leq \int w(x)(1+e^{-x})^{-1}\,d\gamma_{a,1}.
-  $$
-  The measure identity identifies the last integral with the corresponding
-  expectation under the gamma law of shape $b$, which is the desired
-  inequality. -/)
-  (title := /-- Pairwise gamma-shape comparison for logistic expectations -/)
-  (latexEnv := "lemma")]
-lemma gamma_logistic_expectation_mono_of_shape_le :
-    ∀ ⦃a b : ℝ⦄, 0 < a -> a ≤ b ->
-      (∫ x : ℝ, (1 / (1 + Real.exp (-x))) ∂(ProbabilityTheory.gammaMeasure a 1)) ≤
-        ∫ x : ℝ, (1 / (1 + Real.exp (-x))) ∂(ProbabilityTheory.gammaMeasure b 1) := by
-  intro a b ha hab
-  have hb : 0 < b := lt_of_lt_of_le ha hab
-  let c : ℝ := b - a
-  let K : ℝ := Real.Gamma a / Real.Gamma b
-  have hc : 0 ≤ c := by
-    dsimp [c]
-    linarith
-  have hgamma_meas : AEMeasurable (ProbabilityTheory.gammaPDF a 1) MeasureTheory.volume :=
-    (ENNReal.measurable_ofReal.comp (ProbabilityTheory.measurable_gammaPDFReal a 1)).aemeasurable
-  have hratio_meas :
-      AEMeasurable (fun x : ℝ => ENNReal.ofReal (K * (max x 0) ^ c)) MeasureTheory.volume := by
-    dsimp [K, c]
-    fun_prop
-  have htilt :
-      ProbabilityTheory.gammaMeasure b 1 =
-        (ProbabilityTheory.gammaMeasure a 1).withDensity
-          (fun x : ℝ => ENNReal.ofReal (K * (max x 0) ^ c)) := by
-    rw [ProbabilityTheory.gammaMeasure, ProbabilityTheory.gammaMeasure]
-    rw [← MeasureTheory.withDensity_mul₀ hgamma_meas hratio_meas]
-    apply MeasureTheory.withDensity_congr_ae
-    filter_upwards [MeasureTheory.Measure.ae_ne MeasureTheory.volume (0 : ℝ)] with x hx0
-    by_cases hx : 0 < x
-    · have hxle : 0 ≤ x := hx.le
-      rw [ProbabilityTheory.gammaPDF_of_nonneg hxle]
-      rw [Pi.mul_apply, ProbabilityTheory.gammaPDF_of_nonneg hxle]
-      dsimp [K, c]
-      rw [max_eq_left hxle]
-      rw [← ENNReal.ofReal_mul]
-      · congr 1
-        have hGa : Real.Gamma a ≠ 0 := (Real.Gamma_pos_of_pos ha).ne'
-        have hGb : Real.Gamma b ≠ 0 := (Real.Gamma_pos_of_pos hb).ne'
-        rw [Real.one_rpow, Real.one_rpow]
-        field_simp [hGa, hGb]
-        rw [← Real.rpow_add hx]
-        congr 1
-        ring
-      · positivity
-    · have hxlt : x < 0 := lt_of_le_of_ne (le_of_not_gt hx) hx0
-      rw [ProbabilityTheory.gammaPDF_of_neg hxlt]
-      rw [Pi.mul_apply, ProbabilityTheory.gammaPDF_of_neg hxlt]
-      simp
-  by_cases hba : b = a
-  · subst b
-    exact le_rfl
-  have hcpos : 0 < c := by
-    refine lt_of_le_of_ne' hc ?_
-    intro hc0
-    apply hba
-    dsimp [c] at hc0
-    linarith
-  have hKpos : 0 < K := by
-    dsimp [K]
-    positivity
-  let t : ℝ := (1 / K) ^ (c⁻¹)
-  have ht_nonneg : 0 ≤ t := by
-    dsimp [t]
-    positivity
-  have ht_cross : K * (max t 0) ^ c = 1 := by
-    have ht_eq : max t 0 = t := max_eq_left ht_nonneg
-    rw [ht_eq]
-    dsimp [t]
-    rw [Real.rpow_inv_rpow]
-    · field_simp [hKpos.ne']
-    · positivity
-    · exact hcpos.ne'
-  have hpoint :
-      ∀ x : ℝ,
-        0 ≤ (Real.sigmoid x - Real.sigmoid t) * (K * (max x 0) ^ c - 1) := by
-    intro x
-    by_cases hxt : x ≤ t
-    · have hsig : Real.sigmoid x ≤ Real.sigmoid t := Real.sigmoid_monotone hxt
-      have hmax : max x 0 ≤ max t 0 := max_le_max hxt le_rfl
-      have hpow : (max x 0) ^ c ≤ (max t 0) ^ c := by
-        exact Real.rpow_le_rpow (le_max_right x 0) hmax hc
-      have hw : K * (max x 0) ^ c ≤ 1 := by
-        calc
-          K * (max x 0) ^ c ≤ K * (max t 0) ^ c := by gcongr
-          _ = 1 := ht_cross
-      exact mul_nonneg_of_nonpos_of_nonpos (sub_nonpos.mpr hsig) (sub_nonpos.mpr hw)
-    · have htx : t ≤ x := le_of_not_ge hxt
-      have hsig : Real.sigmoid t ≤ Real.sigmoid x := Real.sigmoid_monotone htx
-      have hmax : max t 0 ≤ max x 0 := max_le_max htx le_rfl
-      have hpow : (max t 0) ^ c ≤ (max x 0) ^ c := by
-        exact Real.rpow_le_rpow (le_max_right t 0) hmax hc
-      have hw : 1 ≤ K * (max x 0) ^ c := by
-        calc
-          1 = K * (max t 0) ^ c := ht_cross.symm
-          _ ≤ K * (max x 0) ^ c := by gcongr
-      exact mul_nonneg (sub_nonneg.mpr hsig) (sub_nonneg.mpr hw)
-  have hdens_real :
-      ∀ x : ℝ, (ENNReal.ofReal (K * (max x 0) ^ c)).toReal = K * (max x 0) ^ c := by
-    intro x
-    rw [ENNReal.toReal_ofReal]
-    positivity
-  have hmass :
-      ∫ x : ℝ, K * (max x 0) ^ c ∂(ProbabilityTheory.gammaMeasure a 1) = 1 := by
-    calc
-      ∫ x : ℝ, K * (max x 0) ^ c ∂(ProbabilityTheory.gammaMeasure a 1)
-          = ∫ x : ℝ, (ENNReal.ofReal (K * (max x 0) ^ c)).toReal ∂(ProbabilityTheory.gammaMeasure a 1) := by
-            simp_rw [hdens_real]
-      _ = ∫ x : ℝ, (1 : ℝ) ∂((ProbabilityTheory.gammaMeasure a 1).withDensity
-            (fun x : ℝ => ENNReal.ofReal (K * (max x 0) ^ c))) := by
-            rw [integral_withDensity_eq_integral_toReal_smul₀ (f_meas := by fun_prop)
-              (hf_lt_top := by simp) (fun _ : ℝ => (1 : ℝ))]
-            simp
-      _ = ∫ x : ℝ, (1 : ℝ) ∂(ProbabilityTheory.gammaMeasure b 1) := by
-            rw [← htilt]
-      _ = 1 := by
-            haveI : MeasureTheory.IsProbabilityMeasure (ProbabilityTheory.gammaMeasure b 1) :=
-              ProbabilityTheory.isProbabilityMeasure_gammaMeasure hb (by norm_num)
-            simp
-  haveI : MeasureTheory.IsProbabilityMeasure (ProbabilityTheory.gammaMeasure a 1) :=
-    ProbabilityTheory.isProbabilityMeasure_gammaMeasure ha (by norm_num)
-  have hmu_one : ∫ x : ℝ, (1 : ℝ) ∂(ProbabilityTheory.gammaMeasure a 1) = 1 := by
-    simp
-  have hf_int : MeasureTheory.Integrable Real.sigmoid (ProbabilityTheory.gammaMeasure a 1) :=
-    MeasureTheory.Integrable.of_mem_Icc 0 1 (by fun_prop)
-      (Filter.Eventually.of_forall fun x => ⟨Real.sigmoid_nonneg x, Real.sigmoid_le_one x⟩)
-  have hlintegral :
-      (∫⁻ x, ENNReal.ofReal (K * (max x 0) ^ c) ∂(ProbabilityTheory.gammaMeasure a 1)) ≠
-        (⊤ : ENNReal) := by
-    haveI : MeasureTheory.IsProbabilityMeasure (ProbabilityTheory.gammaMeasure b 1) :=
-      ProbabilityTheory.isProbabilityMeasure_gammaMeasure hb (by norm_num)
-    have hfinite : ((ProbabilityTheory.gammaMeasure b 1) Set.univ) < (⊤ : ENNReal) :=
-      MeasureTheory.measure_lt_top (ProbabilityTheory.gammaMeasure b 1) Set.univ
-    rw [htilt, MeasureTheory.withDensity_apply _ MeasurableSet.univ] at hfinite
-    simpa using (ne_of_lt hfinite)
-  have hw_int :
-      MeasureTheory.Integrable (fun x : ℝ => K * (max x 0) ^ c)
-        (ProbabilityTheory.gammaMeasure a 1) := by
-    refine (MeasureTheory.lintegral_ofReal_ne_top_iff_integrable ?_ ?_).mp hlintegral
-    · fun_prop (disch := positivity)
-    · exact Filter.Eventually.of_forall fun x => by positivity
-  have hwf_int :
-      MeasureTheory.Integrable (fun x : ℝ => K * (max x 0) ^ c * Real.sigmoid x)
-        (ProbabilityTheory.gammaMeasure a 1) := by
-    refine MeasureTheory.Integrable.mono' hw_int ?_ ?_
-    · fun_prop (disch := positivity)
-    · exact Filter.Eventually.of_forall fun x => by
-        have hw0 : 0 ≤ K * (max x 0) ^ c := by positivity
-        have hprod0 : 0 ≤ K * (max x 0) ^ c * Real.sigmoid x :=
-          mul_nonneg hw0 (Real.sigmoid_nonneg x)
-        rw [Real.norm_of_nonneg hprod0]
-        exact mul_le_of_le_one_right hw0 (Real.sigmoid_le_one x)
-  have hwt_int :
-      MeasureTheory.Integrable (fun x : ℝ => Real.sigmoid t * (K * (max x 0) ^ c))
-        (ProbabilityTheory.gammaMeasure a 1) :=
-    hw_int.const_mul (Real.sigmoid t)
-  have hconst_int :
-      MeasureTheory.Integrable (fun _ : ℝ => Real.sigmoid t)
-        (ProbabilityTheory.gammaMeasure a 1) := by
-    fun_prop
-  have hcov_nonneg :
-      0 ≤ ∫ x : ℝ,
-          (Real.sigmoid x - Real.sigmoid t) * (K * (max x 0) ^ c - 1)
-            ∂(ProbabilityTheory.gammaMeasure a 1) := by
-    exact MeasureTheory.integral_nonneg
-      (μ := ProbabilityTheory.gammaMeasure a 1)
-      (f := fun x : ℝ => (Real.sigmoid x - Real.sigmoid t) * (K * (max x 0) ^ c - 1))
-      hpoint
-  have hcov_eq :
-      ∫ x : ℝ, (Real.sigmoid x - Real.sigmoid t) * (K * (max x 0) ^ c - 1)
-          ∂(ProbabilityTheory.gammaMeasure a 1)
-        = ∫ x : ℝ, K * (max x 0) ^ c * Real.sigmoid x
-            ∂(ProbabilityTheory.gammaMeasure a 1)
-          - ∫ x : ℝ, Real.sigmoid x ∂(ProbabilityTheory.gammaMeasure a 1) := by
-    calc
-      ∫ x : ℝ, (Real.sigmoid x - Real.sigmoid t) * (K * (max x 0) ^ c - 1)
-          ∂(ProbabilityTheory.gammaMeasure a 1)
-          = ∫ x : ℝ,
-              (K * (max x 0) ^ c * Real.sigmoid x - Real.sigmoid x) -
-                (Real.sigmoid t * (K * (max x 0) ^ c) - Real.sigmoid t)
-              ∂(ProbabilityTheory.gammaMeasure a 1) := by
-            apply MeasureTheory.integral_congr_ae
-            exact Filter.Eventually.of_forall fun x => by ring
-      _ = (∫ x : ℝ, K * (max x 0) ^ c * Real.sigmoid x
-              ∂(ProbabilityTheory.gammaMeasure a 1) -
-            ∫ x : ℝ, Real.sigmoid x ∂(ProbabilityTheory.gammaMeasure a 1)) -
-          (∫ x : ℝ, Real.sigmoid t * (K * (max x 0) ^ c)
-              ∂(ProbabilityTheory.gammaMeasure a 1) -
-            ∫ x : ℝ, Real.sigmoid t ∂(ProbabilityTheory.gammaMeasure a 1)) := by
-            rw [MeasureTheory.integral_sub]
-            · rw [MeasureTheory.integral_sub hwf_int hf_int]
-              rw [MeasureTheory.integral_sub hwt_int hconst_int]
-            · exact hwf_int.sub hf_int
-            · exact hwt_int.sub hconst_int
-      _ = ∫ x : ℝ, K * (max x 0) ^ c * Real.sigmoid x
-            ∂(ProbabilityTheory.gammaMeasure a 1) -
-          ∫ x : ℝ, Real.sigmoid x ∂(ProbabilityTheory.gammaMeasure a 1) := by
-            rw [MeasureTheory.integral_const_mul, hmass]
-            simp
-  simp only [one_div, ← Real.sigmoid_def]
-  rw [htilt]
-  rw [integral_withDensity_eq_integral_toReal_smul₀ (f_meas := by fun_prop)
-    (hf_lt_top := by simp) Real.sigmoid]
-  simp_rw [hdens_real, smul_eq_mul]
-  have hdiff_nonneg := hcov_nonneg
-  rw [hcov_eq] at hdiff_nonneg
-  linarith
-
-@[blueprint "lem:gamma-logistic-expectation-monotone"
-  (statement := /-- For all real numbers $a$ and $b$ with $0<a\leq b$, the
-  expectation of $h(x)=(1+e^{-x})^{-1}$ under the gamma distribution of shape
-  $a$ and scale $1$ is at most the corresponding expectation under the gamma
-  distribution of shape $b$ and scale $1$.  Equivalently, this expectation is
-  non-decreasing on the open half-line of positive shape parameters. -/)
-  (proof := /-- Let $a$ and $b$ be two elements of $(0,\infty)$ with $a\leq b$.
-  The hypotheses give $0<a$, so
-  \cref{lem:gamma-logistic-expectation-mono-of-shape-le} applies and compares
-  the two logistic expectations at shapes $a$ and $b$.  This is exactly the
-  defining pairwise condition for monotonicity on the set $(0,\infty)$. -/)
-  (title := /-- Monotonicity of gamma-logistic expectations -/)
-  (latexEnv := "lemma")]
-lemma gamma_logistic_expectation_monotone :
-    MonotoneOn
-      (fun s : ℝ =>
-        ∫ x : ℝ, (1 / (1 + Real.exp (-x))) ∂(ProbabilityTheory.gammaMeasure s 1))
-      (Set.Ioi (0 : ℝ)) := by
-  intro a ha b hb hab
-  exact gamma_logistic_expectation_mono_of_shape_le ha hab
-
-@[blueprint "lem:dirichlet-eta-monotone"
-  (statement := /-- The real Dirichlet eta function of
-  \cref{def:dirichlet-eta-real} is non-decreasing on the open half-line
-  $(1,\infty)$. -/)
-  (proof := /-- Let $1<s\leq t$.  By
-  \cref{lem:dirichlet-eta-gamma-expectation}, both $\eta(s)$ and $\eta(t)$
-  are the expectations of $h(x)=(1+e^{-x})^{-1}$ against the gamma laws of
-  shapes $s$ and $t$ and scale $1$.  Since $0<s\leq t$,
-  \cref{lem:gamma-logistic-expectation-monotone} compares these two
-  expectations and gives the expectation at shape $s$ at most the expectation
-  at shape $t$.  Substituting the two eta-expectation identities gives
-  $\eta(s)\leq\eta(t)$.  This is exactly monotonicity of
-  \cref{def:dirichlet-eta-real} on $(1,\infty)$. -/)
-  (title := /-- Monotonicity of eta on the half-line $s>1$ -/)
-  (latexEnv := "lemma")]
-lemma dirichlet_eta_monotone :
-    MonotoneOn dirichlet_eta_real (Set.Ioi (1 : ℝ)) := by
-  intro s hs t ht hst
-  rw [dirichlet_eta_gamma_expectation s hs, dirichlet_eta_gamma_expectation t ht]
-  exact gamma_logistic_expectation_monotone
-    (show s ∈ Set.Ioi (0 : ℝ) from show (0 : ℝ) < s from lt_trans zero_lt_one hs)
-    (show t ∈ Set.Ioi (0 : ℝ) from show (0 : ℝ) < t from lt_trans zero_lt_one ht)
-    hst
-
-@[blueprint "lem:dirichlet-eta-log-derivative-nonnegative"
-  (statement := /-- For every real $s>1$, the logarithmic derivative of the
-  real Dirichlet eta function is non-negative:
-  $0\leq \eta'(s)/\eta(s)$. -/)
-  (proof := /-- Fix $s>1$.  By \cref{lem:dirichlet-eta-monotone}, the function
-  $\eta$ is non-decreasing on the open half-line $(1,\infty)$.  Since $s$ lies
-  in this open half-line, the derivative within $(1,\infty)$ at $s$ is the
-  ordinary derivative at $s$, and the standard non-negativity theorem for the
-  derivative of a monotone function on a set gives $\eta'(s)\geq 0$.  By
-  \cref{lem:dirichlet-eta-positive}, one has $\eta(s)>0$.  Dividing the
-  non-negative derivative by this positive value gives
-  $\eta'(s)/\eta(s)\geq 0$. -/)
-  (title := /-- Non-negativity of the eta logarithmic derivative -/)
-  (latexEnv := "lemma")]
-lemma dirichlet_eta_log_derivative_nonnegative :
-    ∀ s : ℝ, 1 < s -> 0 ≤ deriv dirichlet_eta_real s / dirichlet_eta_real s := by
-  intro s hs
-  refine div_nonneg ?_ (le_of_lt (dirichlet_eta_positive s hs))
-  simpa [derivWithin_of_isOpen isOpen_Ioi (show s ∈ Set.Ioi (1 : ℝ) from hs)] using
-    (dirichlet_eta_monotone.derivWithin_nonneg (x := s))
-
-@[blueprint "lem:dirichlet-eta-zeta-log-derivative"
-  (statement := /-- For every real number $u$ with $u>0$, the logarithmic
-  derivative of the real Dirichlet eta function at $1+u$ is the real part of
-  the logarithmic derivative of the Riemann zeta function at $1+u$, plus the
-  eta-factor term:
-  $$ {\eta'(1+u)\over\eta(1+u)}
-    = \operatorname{Re}{\zeta'(1+u)\over\zeta(1+u)}
-      + {\log 2\over 2^u-1}. $$ -/)
-  (proof := /-- By \cref{def:dirichlet-eta-real},
-  $\eta(s)$ is the real part of $(1-2^{1-s})\zeta(s)$ on the real axis.  Fix
-  $u>0$ and put $s=1+u$.  The factor $1-2^{1-z}$ and the Riemann zeta function
-  are differentiable and non-zero at $z=s$, so the complex logarithmic
-  derivative of their product is the sum of their logarithmic derivatives.  The
-  factor derivative is
-  $\frac{d}{dz}(1-2^{1-z})=(\log 2)2^{1-z}$, hence at $s=1+u$ its logarithmic
-  derivative is $(\log 2)/(2^u-1)$.  Since the factor and $\zeta(s)$ are real
-  at this real point, taking real parts identifies the complex product
-  logarithmic derivative with the real logarithmic derivative of
-  \cref{def:dirichlet-eta-real}.  This gives the displayed identity. -/)
-  (title := /-- Eta-zeta logarithmic derivative identity -/)
-  (latexEnv := "lemma")]
-lemma dirichlet_eta_zeta_log_derivative :
-    ∀ u : ℝ, 0 < u ->
-      deriv dirichlet_eta_real (1 + u) / dirichlet_eta_real (1 + u) =
-        ((deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-          riemannZeta ((1 + u : ℝ) : ℂ)).re +
-        Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1)) := by
-  intro u hu
-  have hfactor_deriv :
-      deriv (fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-          ((1 + u : ℝ) : ℂ) =
-        (2 : ℂ) ^ (-(u : ℂ)) * Complex.log (2 : ℂ) := by
-    have hinner :
-        HasDerivAt (fun z : ℂ => (1 : ℂ) - z) (-1 : ℂ) ((1 + u : ℝ) : ℂ) := by
-      simpa using
-        (hasDerivAt_const ((1 + u : ℝ) : ℂ) (1 : ℂ)).sub
-          (hasDerivAt_id ((1 + u : ℝ) : ℂ))
-    have hpow :
-        HasDerivAt (fun z : ℂ => (2 : ℂ) ^ ((1 : ℂ) - z))
-          ((2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ))) *
-            Complex.log (2 : ℂ) * (-1 : ℂ)) ((1 + u : ℝ) : ℂ) := by
-      simpa [mul_comm, mul_left_comm, mul_assoc] using
-        hinner.const_cpow (c := (2 : ℂ)) (Or.inl (by norm_num : (2 : ℂ) ≠ 0))
-    have hfactor :
-        HasDerivAt (fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-          (-((2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ))) *
-            Complex.log (2 : ℂ) * (-1 : ℂ))) ((1 + u : ℝ) : ℂ) := by
-      simpa using (hasDerivAt_const ((1 + u : ℝ) : ℂ) (1 : ℂ)).sub hpow
-    simpa [mul_comm, mul_left_comm, mul_assoc] using hfactor.deriv
-  have hfactor_log :
-      (logDeriv (fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-          ((1 + u : ℝ) : ℂ)).re =
-        Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) := by
-    have hfactor_deriv_real :
-        deriv (fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-            ((1 + u : ℝ) : ℂ) =
-          ((Real.rpow (2 : ℝ) (-u) * Real.log (2 : ℝ) : ℝ) : ℂ) := by
-      simpa [Complex.ofReal_cpow, mul_comm, mul_left_comm, mul_assoc] using hfactor_deriv
-    have hpow_gt_one : 1 < Real.rpow (2 : ℝ) u := by
-      exact (Real.one_lt_rpow_iff (by norm_num : 0 ≤ (2 : ℝ))).2
-        (Or.inl ⟨by norm_num, hu⟩)
-    have hden_ne : Real.rpow (2 : ℝ) u - 1 ≠ 0 :=
-      sub_ne_zero.mpr (ne_of_gt hpow_gt_one)
-    have hfactor_val :
-        ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ)))) =
-          ((1 - Real.rpow (2 : ℝ) (-u) : ℝ) : ℂ) := by
-      simp [Complex.ofReal_cpow]
-    rw [logDeriv]
-    change (deriv (fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-        ((1 + u : ℝ) : ℂ) /
-          ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ))))).re =
-      Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1)
-    rw [hfactor_deriv_real, hfactor_val]
-    rw [← Complex.ofReal_div]
-    norm_cast
-    rw [show Real.rpow (2 : ℝ) (-u) = (Real.rpow (2 : ℝ) u)⁻¹ by
-      exact Real.rpow_neg (by norm_num : 0 ≤ (2 : ℝ)) u]
-    field_simp [hden_ne]
-  have hpow_lt : Real.rpow (2 : ℝ) (-u) < 1 :=
-    Real.rpow_lt_one_of_one_lt_of_neg (by norm_num) (by linarith)
-  have hfactor_ne :
-      ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ)))) ≠ 0 := by
-    have hpow_ne : (2 : ℂ) ^ (-(u : ℂ)) ≠ 1 := by
-      simpa [Complex.ofReal_cpow] using
-        (show ((Real.rpow (2 : ℝ) (-u) : ℝ) : ℂ) ≠ 1 by
-          exact_mod_cast hpow_lt.ne)
-    simpa using sub_ne_zero.mpr (Ne.symm hpow_ne)
-  have hz_ne : riemannZeta ((1 + u : ℝ) : ℂ) ≠ 0 :=
-    riemannZeta_ne_zero_of_one_lt_re (by simp; linarith)
-  have hf_diff :
-      DifferentiableAt ℂ (fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-        ((1 + u : ℝ) : ℂ) := by
-    fun_prop
-  have hz_diff : DifferentiableAt ℂ riemannZeta ((1 + u : ℝ) : ℂ) :=
-    differentiableAt_riemannZeta (by norm_num [Complex.ext_iff]; linarith)
-  have hprod_log :
-      (logDeriv (fun z : ℂ =>
-          ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z)) * riemannZeta z)
-          ((1 + u : ℝ) : ℂ)).re =
-        (deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-            riemannZeta ((1 + u : ℝ) : ℂ)).re +
-          Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) := by
-    have h := logDeriv_mul
-      (f := fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-      (g := riemannZeta) ((1 + u : ℝ) : ℂ) hfactor_ne hz_ne hf_diff hz_diff
-    calc
-      (logDeriv (fun z : ℂ =>
-          ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z)) * riemannZeta z)
-          ((1 + u : ℝ) : ℂ)).re
-          = (logDeriv (fun z : ℂ => (1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z))
-              ((1 + u : ℝ) : ℂ) + logDeriv riemannZeta ((1 + u : ℝ) : ℂ)).re := by
-            rw [h]
-      _ = Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) +
-            (logDeriv riemannZeta ((1 + u : ℝ) : ℂ)).re := by
-            rw [Complex.add_re]
-            rw [hfactor_log]
-      _ = Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) +
-            (deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-              riemannZeta ((1 + u : ℝ) : ℂ)).re := by
-            simp [logDeriv]
-      _ = (deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-            riemannZeta ((1 + u : ℝ) : ℂ)).re +
-          Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) := by
-            ring
-  have hE_diff :
-      DifferentiableAt ℂ (fun z : ℂ =>
-        ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z)) * riemannZeta z)
-        ((1 + u : ℝ) : ℂ) :=
-    hf_diff.mul hz_diff
-  have hderiv_eta :
-      deriv dirichlet_eta_real (1 + u) =
-        (deriv (fun z : ℂ =>
-          ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z)) * riemannZeta z)
-          ((1 + u : ℝ) : ℂ)).re := by
-    change deriv (fun x : ℝ =>
-      ((((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (x : ℂ))) *
-        riemannZeta (x : ℂ)).re)) (1 + u) = _
-    exact hE_diff.hasDerivAt.real_of_complex.deriv
-  have hfactor_val2 :
-      ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ)))) =
-        ((1 - Real.rpow (2 : ℝ) (-u) : ℝ) : ℂ) := by
-    simp [Complex.ofReal_cpow]
-  have hz_im : (riemannZeta ((1 + u : ℝ) : ℂ)).im = 0 := by
-    simpa using riemannZeta_im_eq_zero_of_one_lt (by linarith : 1 < 1 + u)
-  have hE_im :
-      (((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ)))) *
-        riemannZeta ((1 + u : ℝ) : ℂ)).im = 0 := by
-    rw [hfactor_val2]
-    have hz_im' : (riemannZeta (1 + (u : ℂ))).im = 0 := by
-      simpa [add_comm] using hz_im
-    simp [hz_im']
-  rw [← hprod_log]
-  rw [logDeriv, hderiv_eta]
-  unfold dirichlet_eta_real
-  let A : ℂ := deriv (fun z : ℂ =>
-    ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - z)) * riemannZeta z) ((1 + u : ℝ) : ℂ)
-  let B : ℂ :=
-    ((1 : ℂ) - (2 : ℂ) ^ ((1 : ℂ) - (((1 + u : ℝ) : ℂ)))) *
-      riemannZeta ((1 + u : ℝ) : ℂ)
-  have hB_im : B.im = 0 := by
-    simpa [B] using hE_im
-  have hB_ne : B ≠ 0 := by
-    dsimp [B]
-    exact mul_ne_zero hfactor_ne hz_ne
-  have hB_re_ne : B.re ≠ 0 := by
-    intro hB_re
-    apply hB_ne
-    exact Complex.ext hB_re hB_im
-  change A.re / B.re = (A / B).re
-  rw [Complex.div_re]
-  simp [hB_im]
-  field_simp [Complex.normSq, hB_im, hB_re_ne]
-  rw [Complex.normSq_apply, hB_im]
-  ring
-
-@[blueprint "lem:eta-log-derivative-nonnegative"
-  (statement := /-- For every real number $u>0$, the sum of the real part of
-  the logarithmic derivative of the Riemann zeta function at the complex point
-  $1+u$ and the eta-factor term is non-negative:
-  $$0\leq \operatorname{Re}\frac{\zeta'(1+u)}{\zeta(1+u)}+
-  \frac{\log 2}{2^u-1}.$$ -/)
-  (proof := /-- Fix $u>0$ and put $s=1+u$, so $s>1$.  By
-  \cref{lem:dirichlet-eta-log-derivative-nonnegative},
-  $0\leq \eta'(s)/\eta(s)$.  By
-  \cref{lem:dirichlet-eta-zeta-log-derivative}, this logarithmic derivative is
-  exactly
-  $$\operatorname{Re}\frac{\zeta'(1+u)}{\zeta(1+u)}
-    +\frac{\log 2}{2^u-1}.$$
-  Substituting this identity into the preceding non-negativity inequality gives
-  the asserted bound. -/)
-  (title := /-- Eta logarithmic-derivative nonnegativity -/)
-  (latexEnv := "lemma")]
-lemma eta_log_derivative_nonnegative :
-    ∀ u : ℝ, 0 < u ->
-      0 ≤ ((deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-          riemannZeta ((1 + u : ℝ) : ℂ)).re +
-        Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1)) := by
-  intro u hu
-  rw [← dirichlet_eta_zeta_log_derivative u hu]
-  exact dirichlet_eta_log_derivative_nonnegative (1 + u) (by linarith)
-
-@[blueprint "lem:zeta-log-derivative-geometric-bound"
-  (statement := /-- For every real number $u>0$, the real part of the negative
-  logarithmic derivative of the Riemann zeta function at the complex point
-  $1+u$ satisfies
-  $$\operatorname{Re}\left(-\frac{\zeta'(1+u)}{\zeta(1+u)}\right)
-  \leq \frac{\log 2}{2^u-1}.$$ -/)
-  (proof := /-- Fix $u>0$.  By
-  \cref{lem:eta-log-derivative-nonnegative},
-  $$0\leq \operatorname{Re}\frac{\zeta'(1+u)}{\zeta(1+u)}+
-  \frac{\log 2}{2^u-1}.$$
-  Since real part is additive and commutes with negation, this inequality is
-  equivalent to
-  $$\operatorname{Re}\left(-\frac{\zeta'(1+u)}{\zeta(1+u)}\right)
-  \leq \frac{\log 2}{2^u-1},$$
-  which is the desired comparison. -/)
-  (title := /-- Zeta logarithmic-derivative comparison -/)
-  (latexEnv := "lemma")]
-lemma zeta_log_derivative_geometric_bound :
-    ∀ u : ℝ, 0 < u ->
-      ((- deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-          riemannZeta ((1 + u : ℝ) : ℂ)).re) ≤
-        Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) := by
-  intro u hu
-  simpa [neg_div] using
-    (show - ((deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-          riemannZeta ((1 + u : ℝ) : ℂ)).re) ≤
-        Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) from by
-      have h := eta_log_derivative_nonnegative u hu
-      linarith)
-
-@[blueprint "lem:mangoldt-dirichlet-series-eq-zeta-log-derivative"
-  (statement := /-- For every real number $u$ with $u>0$, the complex number
-  obtained from the real von Mangoldt Dirichlet series equals the negative
-  logarithmic derivative of the Riemann zeta function at $1+u$:
-  $$
-    \sum_{q\in\mathbb{N}} \Lambda(q)q^{-1-u}
-      =-\frac{\zeta'(1+u)}{\zeta(1+u)}.
-  $$ -/)
-  (proof := /-- Fix $u>0$ and put $s=1+u$, so that $\operatorname{Re}s>1$.
-  The Mathlib von Mangoldt L-series identity identifies the complex L-series
-  with $-\zeta'(s)/\zeta(s)$.  It remains only to expand
-  \cref{def:mangoldt-dirichlet-series}: after coercing the real infinite sum
-  to $\mathbb{C}$, each term is the corresponding L-series term, because for
-  every natural number $q$ the complex power of the non-negative real $q$ agrees
-  with the real power coerced to $\mathbb{C}$. -/)
-  (title := /-- Von Mangoldt series as a zeta logarithmic derivative -/)
-  (latexEnv := "lemma")]
-lemma mangoldt_dirichlet_series_eq_zeta_log_derivative :
-    ∀ u : ℝ, 0 < u ->
-      (mangoldt_dirichlet_series u : ℂ) =
-        - deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-          riemannZeta ((1 + u : ℝ) : ℂ) := by
-  intro u hu
-  have hs : 1 < (((1 + u : ℝ) : ℂ).re) := by
-    simp
-    linarith
-  rw [← ArithmeticFunction.LSeries_vonMangoldt_eq_deriv_riemannZeta_div
-    (s := ((1 + u : ℝ) : ℂ)) hs]
-  change (mangoldt_dirichlet_series u : ℂ) =
-    LSeries (fun q : ℕ => (ArithmeticFunction.vonMangoldt q : ℂ)) ((1 + u : ℝ) : ℂ)
-  rw [mangoldt_dirichlet_series, LSeries, Complex.ofReal_tsum]
-  apply tsum_congr
-  intro q
-  by_cases hq : q = 0
-  · subst q
-    simp [Real.zero_rpow (by linarith : (1 : ℝ) + u ≠ 0)]
-  · rw [LSeries.term_of_ne_zero hq]
-    rw [Complex.ofReal_div]
-    congr 1
-    exact Complex.ofReal_cpow (Nat.cast_nonneg q) (1 + u)
-
-@[blueprint "lem:zeta-geometric-bound-le-inv"
-  (statement := /-- For every real number $u$ with $u>0$, the elementary
-  geometric factor satisfies
-  $$
-    \frac{\log 2}{2^u-1}\leq \frac{1}{u}.
-  $$ -/)
-  (proof := /-- Fix $u>0$.  The denominator $2^u-1$ is positive.  Applying
-  the inequality $x+1\leq e^x$ to $x=(\log 2)u$ and rewriting
-  $e^{(\log 2)u}$ as $2^u$ gives $(\log 2)u\leq 2^u-1$.  Since both $u$ and
-  $2^u-1$ are positive, cross-multiplication gives the displayed inequality. -/)
-  (title := /-- Geometric factor bounded by $1/u$ -/)
-  (latexEnv := "lemma")]
-lemma zeta_geometric_bound_le_inv :
-    ∀ u : ℝ, 0 < u ->
-      Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) ≤ 1 / u := by
-  intro u hu
-  have hpow_gt_one : 1 < Real.rpow (2 : ℝ) u := by
-    exact (Real.one_lt_rpow_iff (by norm_num : 0 ≤ (2 : ℝ))).2
-      (Or.inl ⟨by norm_num, hu⟩)
-  have hden_pos : 0 < Real.rpow (2 : ℝ) u - 1 := by
-    linarith
-  have hmul : Real.log (2 : ℝ) * u ≤ Real.rpow (2 : ℝ) u - 1 := by
-    have h := Real.add_one_le_exp (Real.log (2 : ℝ) * u)
-    have h' : Real.log (2 : ℝ) * u + 1 ≤ Real.rpow (2 : ℝ) u := by
-      simpa [Real.rpow_def_of_pos (by norm_num : (0 : ℝ) < 2) u] using h
-    linarith
-  rw [div_le_div_iff₀ hden_pos hu]
-  simpa [one_mul, mul_comm, mul_left_comm, mul_assoc] using hmul
-
-@[blueprint "lem:von-mangoldt-dirichlet-series-upper-bound"
-  (statement := /-- For every real number $u$ with $u>0$, the von Mangoldt
-  Dirichlet series
-  $\sum_{q\in\mathbb{N}} \Lambda(q)q^{-1-u}$ is at most $1/u$. -/)
-  (proof := /-- Fix a real number $u>0$.  By
-  \cref{lem:mangoldt-dirichlet-series-eq-zeta-log-derivative}, the real
-  Dirichlet series is the real part of
-  $-\zeta'(1+u)/\zeta(1+u)$.  The comparison
-  \cref{lem:zeta-log-derivative-geometric-bound} bounds this real part by
-  $\log 2/(2^u-1)$, and
-  \cref{lem:zeta-geometric-bound-le-inv} bounds the latter quantity by $1/u$.
-  Chaining these two inequalities gives the result. -/)
-  (title := /-- Dirichlet-series upper bound -/)
-  (latexEnv := "lemma")]
-lemma von_mangoldt_dirichlet_series_upper_bound :
-    ∀ u : ℝ, 0 < u -> mangoldt_dirichlet_series u ≤ 1 / u := by
-  intro u hu
-  have hseries :
-      mangoldt_dirichlet_series u =
-        ((- deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-          riemannZeta ((1 + u : ℝ) : ℂ)).re) := by
-    simpa using congrArg Complex.re
-      (mangoldt_dirichlet_series_eq_zeta_log_derivative u hu)
-  calc
-    mangoldt_dirichlet_series u
-        = ((- deriv riemannZeta ((1 + u : ℝ) : ℂ) /
-          riemannZeta ((1 + u : ℝ) : ℂ)).re) := hseries
-    _ ≤ Real.log (2 : ℝ) / (Real.rpow (2 : ℝ) u - 1) :=
-      zeta_log_derivative_geometric_bound u hu
-    _ ≤ 1 / u := zeta_geometric_bound_le_inv u hu
 
 @[blueprint "lem:mangoldt-tail-range-eq-ico"
   (statement := /-- For every natural cutoff $N$, natural parameter $m$, and
@@ -2069,414 +1111,6 @@ lemma mangoldt_tail_finite_sum_le (m : ℕ) (hm : 1 ≤ m) (y : ℝ) (hy : 2 ≤
     · norm_num
   simpa [mangoldt_tail_sum] using hsumm.sum_le_tsum s (fun q _ => hnonneg q)
 
-@[blueprint "lem:mangoldt-dirichlet-series-summable-local"
-  (statement := /-- For every real number $u>0$, the real von Mangoldt
-  Dirichlet series defining $\sum_q\Lambda(q)q^{-1-u}$ is summable. -/)
-  (proof := /-- This is the real form of the Mathlib absolute convergence of
-  the von Mangoldt $L$-series in the half-plane $\operatorname{Re}s>1$,
-  specialized to $s=1+u$ and then transported along the coercion
-  $\mathbb{R}\to\mathbb{C}$. -/)
-  (title := /-- Summability of the real von Mangoldt Dirichlet series -/)
-  (latexEnv := "lemma")]
-lemma mangoldt_dirichlet_series_summable_local :
-    ∀ u : ℝ, 0 < u ->
-      Summable (fun q : ℕ =>
-        ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + u)) := by
-  intro u hu
-  have hs : 1 < (((1 + u : ℝ) : ℂ).re) := by
-    simp
-    linarith
-  have hcomplex := ArithmeticFunction.LSeriesSummable_vonMangoldt
-    (s := ((1 + u : ℝ) : ℂ)) hs
-  rw [LSeriesSummable] at hcomplex
-  have hcomplex' : Summable (fun q : ℕ =>
-      ((ArithmeticFunction.vonMangoldt q /
-        Real.rpow (q : ℝ) (1 + u) : ℝ) : ℂ)) := by
-    refine hcomplex.congr ?_
-    intro q
-    by_cases hq : q = 0
-    · subst q
-      simp [LSeries.term_def, Real.zero_rpow (by linarith : (1 : ℝ) + u ≠ 0)]
-    · rw [LSeries.term_of_ne_zero hq]
-      rw [Complex.ofReal_div]
-      congr 1
-      exact (Complex.ofReal_cpow (Nat.cast_nonneg q) (1 + u)).symm
-  exact Complex.summable_ofReal.mp hcomplex'
-
-@[blueprint "lem:mangoldt-dirichlet-series-finite-threshold-bound-local"
-  (statement := /-- For every real number $u>0$ and every natural cutoff $N$,
-  the finite sum of $\Lambda(q)q^{-1-u}$ over natural $q<N$ with $q\geq 2$ is
-  at most $1/u$. -/)
-  (proof := /-- By
-  \cref{lem:mangoldt-dirichlet-series-summable-local}, the full real
-  von Mangoldt Dirichlet series is summable.  Its summands are non-negative, so
-  the finite thresholded sum is at most the full t-sum.  The latter is bounded
-  by $1/u$ by \cref{lem:von-mangoldt-dirichlet-series-upper-bound}. -/)
-  (title := /-- Finite thresholded Dirichlet sums -/)
-  (latexEnv := "lemma")]
-lemma mangoldt_dirichlet_series_finite_threshold_bound_local :
-    ∀ u : ℝ, 0 < u -> ∀ N : ℕ,
-      (∑ q ∈ Finset.range N,
-        if (2 : ℝ) ≤ (q : ℝ) then
-          ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + u)
-        else 0) ≤ 1 / u := by
-  intro u hu N
-  have hsumm := mangoldt_dirichlet_series_summable_local u hu
-  have hnonneg : ∀ q : ℕ,
-      0 ≤ ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + u) := by
-    intro q
-    exact div_nonneg ArithmeticFunction.vonMangoldt_nonneg
-      (Real.rpow_nonneg (Nat.cast_nonneg q) (1 + u))
-  calc
-    (∑ q ∈ Finset.range N,
-        if (2 : ℝ) ≤ (q : ℝ) then
-          ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + u)
-        else 0) ≤
-        ∑ q ∈ Finset.range N,
-          ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + u) := by
-      refine Finset.sum_le_sum ?_
-      intro q hq
-      split_ifs
-      · rfl
-      · exact hnonneg q
-    _ ≤ mangoldt_dirichlet_series u := by
-      simpa [mangoldt_dirichlet_series] using
-        hsumm.sum_le_tsum (Finset.range N) (fun q _ => hnonneg q)
-    _ ≤ 1 / u := von_mangoldt_dirichlet_series_upper_bound u hu
-
-@[blueprint "lem:log-square-integral-kernel-local"
-  (statement := /-- For every real number $r>0$,
-  $\int_0^\infty t e^{-rt}\,dt=1/r^2$. -/)
-  (proof := /-- This is the specialization of the Gamma-integral identity to
-  exponent $2$, together with the value $\Gamma(2)=1$. -/)
-  (title := /-- The logarithmic square integral kernel -/)
-  (latexEnv := "lemma")]
-lemma log_square_integral_kernel_local (r : ℝ) (hr : 0 < r) :
-    (∫ t : ℝ in Set.Ioi 0, t * Real.exp (-(r * t))) = 1 / r ^ 2 := by
-  have h := Real.integral_rpow_mul_exp_neg_mul_Ioi
-    (a := (2 : ℝ)) (r := r) (by norm_num) hr
-  calc
-    (∫ t : ℝ in Set.Ioi 0, t * Real.exp (-(r * t))) =
-        ∫ t : ℝ in Set.Ioi 0,
-          t ^ ((2 : ℝ) - 1) * Real.exp (-(r * t)) := by
-      apply MeasureTheory.setIntegral_congr_fun measurableSet_Ioi
-      intro t ht
-      norm_num [Real.rpow_one]
-    _ = (1 / r) ^ (2 : ℝ) * Real.Gamma 2 := h
-    _ = 1 / r ^ 2 := by
-      rw [Real.Gamma_two, Real.rpow_two]
-      field_simp [hr.ne']
-
-@[blueprint "lem:log-square-integral-kernel-integrable-local"
-  (statement := /-- For every real number $r>0$, the function
-  $t\mapsto t e^{-rt}$ is integrable on $(0,\infty)$. -/)
-  (proof := /-- Apply the standard exponential-polynomial integrability
-  criterion with exponent $v=-r$ and perturbation $r/2$.  The two required
-  exponential functions have negative rates on $(0,\infty)$, hence are
-  integrable there. -/)
-  (title := /-- Integrability of the logarithmic square kernel -/)
-  (latexEnv := "lemma")]
-lemma log_square_integral_kernel_integrable_local (r : ℝ) (hr : 0 < r) :
-    MeasureTheory.IntegrableOn (fun t : ℝ => t * Real.exp (-(r * t)))
-      (Set.Ioi 0) := by
-  have hhalf_ne : r / 2 ≠ 0 := by positivity
-  have hrate_pos : -r + r / 2 < 0 := by linarith
-  have hrate_neg : -r - r / 2 < 0 := by linarith
-  have hint_pos : MeasureTheory.Integrable
-      (fun t : ℝ => Real.exp ((-r + r / 2) * t))
-      (MeasureTheory.volume.restrict (Set.Ioi 0)) :=
-    integrableOn_exp_mul_Ioi hrate_pos 0
-  have hint_neg : MeasureTheory.Integrable
-      (fun t : ℝ => Real.exp ((-r - r / 2) * t))
-      (MeasureTheory.volume.restrict (Set.Ioi 0)) :=
-    integrableOn_exp_mul_Ioi hrate_neg 0
-  have h := ProbabilityTheory.integrable_pow_mul_exp_of_integrable_exp_mul
-    (μ := MeasureTheory.volume.restrict (Set.Ioi 0))
-    (X := fun t : ℝ => t) (v := -r) (t := r / 2)
-    hhalf_ne hint_pos hint_neg 1
-  simpa [pow_one, mul_comm, mul_left_comm, mul_assoc] using h
-
-@[blueprint "lem:mangoldt-tail-term-integral-local"
-  (statement := /-- If $m\geq 1$ and $q\geq 2$, then the von Mangoldt tail
-  summand is the integral of the Laplace kernel
-  $(\Lambda(q)/q)t(mq)^{-t}$ over $t>0$. -/)
-  (proof := /-- Since $mq\geq 2$, the logarithm of $mq$ is positive.  Apply
-  \cref{lem:log-square-integral-kernel-local} with
-  $r=\log(mq)$ and rewrite $(mq)^{-t}$ as $e^{-t\log(mq)}$.  Multiplying the
-  resulting identity by $\Lambda(q)/q$ gives the defining tail summand. -/)
-  (title := /-- Integral form of one von Mangoldt tail summand -/)
-  (latexEnv := "lemma")]
-lemma mangoldt_tail_term_integral_local (m q : ℕ) (hm : 1 ≤ m) (hq : 2 ≤ q) :
-    mangoldt_tail_term m q =
-      ∫ t : ℝ in Set.Ioi 0,
-        (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-          (t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) := by
-  have hmq_two : 2 ≤ m * q := Nat.mul_le_mul hm hq
-  have hmq_pos : 0 < (((m * q : ℕ) : ℝ)) := by
-    exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_two hmq_two)
-  have hlog_pos : 0 < Real.log (((m * q : ℕ) : ℝ)) := by
-    apply Real.log_pos
-    exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hmq_two)
-  have hkernel :
-      (∫ t : ℝ in Set.Ioi 0,
-        t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) =
-        1 / Real.log (((m * q : ℕ) : ℝ)) ^ 2 := by
-    have hfun : (fun t : ℝ => t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) =
-        fun t : ℝ => t * Real.exp (-(Real.log (((m * q : ℕ) : ℝ)) * t)) := by
-      funext t
-      change t * (((m * q : ℕ) : ℝ) ^ (-t)) =
-        t * Real.exp (-(Real.log (((m * q : ℕ) : ℝ)) * t))
-      rw [Real.rpow_def_of_pos hmq_pos]
-      ring_nf
-    rw [hfun]
-    exact log_square_integral_kernel_local
-      (Real.log (((m * q : ℕ) : ℝ))) hlog_pos
-  calc
-    mangoldt_tail_term m q =
-        (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-          (1 / Real.log (((m * q : ℕ) : ℝ)) ^ 2) := by
-      rw [mangoldt_tail_term]
-      ring
-    _ = (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-        (∫ t : ℝ in Set.Ioi 0,
-          t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) := by
-      rw [hkernel]
-    _ = ∫ t : ℝ in Set.Ioi 0,
-        (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-          (t * Real.rpow (((m * q : ℕ) : ℝ)) (-t)) := by
-      rw [MeasureTheory.integral_const_mul]
-
-@[blueprint "lem:mangoldt-tail-integrand-factor-local"
-  (statement := /-- Let $n\geq 2$, let $N$ be a natural cutoff, and let $t$ be
-  real.  The finite integral-side von Mangoldt tail integrand factors as
-  $t n^{-t}$ times the corresponding finite Dirichlet sum with exponent
-  $1+t$. -/)
-  (proof := /-- Distribute the common factor $t n^{-t}$ across the finite sum.
-  For each selected $q\geq 2$, use $(nq)^{-t}=n^{-t}q^{-t}$ and
-  $q^{1+t}=q q^t$; unselected terms are both zero. -/)
-  (title := /-- Factoring the finite tail integrand -/)
-  (latexEnv := "lemma")]
-lemma mangoldt_tail_integrand_factor_local (n N : ℕ) (t : ℝ) (hn : 2 ≤ n) :
-    (∑ q ∈ Finset.range N,
-      if (2 : ℝ) ≤ (q : ℝ) then
-        (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-          (t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
-      else 0) =
-      t * Real.rpow (n : ℝ) (-t) *
-        (∑ q ∈ Finset.range N,
-          if (2 : ℝ) ≤ (q : ℝ) then
-            ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + t)
-          else 0) := by
-  rw [Finset.mul_sum]
-  apply Finset.sum_congr rfl
-  intro q hq
-  by_cases hqcond : (2 : ℝ) ≤ (q : ℝ)
-  · have hn_pos : 0 < (n : ℝ) := by
-      exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_two hn)
-    have hq_nat : 2 ≤ q := by
-      exact_mod_cast hqcond
-    have hq_pos : 0 < (q : ℝ) := by
-      exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_two hq_nat)
-    simp [hqcond]
-    rw [Real.mul_rpow hn_pos.le hq_pos.le]
-    rw [Real.rpow_add hq_pos (1 : ℝ) t, Real.rpow_one]
-    rw [Real.rpow_neg hq_pos.le t]
-    field_simp [hq_pos.ne', (Real.rpow_pos_of_pos hq_pos t).ne']
-  · simp [hqcond]
-
-@[blueprint "lem:mangoldt-tail-range-subinvariant-local"
-  (statement := /-- For every natural number $n\geq 2$ and every natural
-  cutoff $N$, the finite thresholded von Mangoldt tail sum up to $N$ is at most
-  $1/\log n$. -/)
-  (proof := /-- Rewrite each selected summand by
-  \cref{lem:mangoldt-tail-term-integral-local}; the integrability needed to
-  exchange the finite sum with the integral follows from
-  \cref{lem:log-square-integral-kernel-integrable-local}.  By
-  \cref{lem:mangoldt-tail-integrand-factor-local}, the
-  resulting integrand is $t n^{-t}$ times a finite Dirichlet sum.  The finite
-  Dirichlet sum is at most $1/t$ for $t>0$ by
-  \cref{lem:mangoldt-dirichlet-series-finite-threshold-bound-local}.  The
-  integrand is therefore bounded by $n^{-t}$, whose integral over $t>0$ is
-  $1/\log n$. -/)
-  (title := /-- Finite sub-invariance bound for the von Mangoldt tail -/)
-  (latexEnv := "lemma")]
-lemma mangoldt_tail_range_subinvariant_local (n N : ℕ) (hn : 2 ≤ n) :
-    (∑ q ∈ Finset.range N,
-      if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) ≤
-      1 / Real.log (n : ℝ) := by
-  have hm : 1 ≤ n := by omega
-  have hn_pos : 0 < (n : ℝ) := by
-    exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_two hn)
-  have hlog_pos : 0 < Real.log (n : ℝ) := by
-    apply Real.log_pos
-    exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hn)
-  let F : ℝ → ℝ := fun t =>
-    ∑ q ∈ Finset.range N,
-      if (2 : ℝ) ≤ (q : ℝ) then
-        (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-          (t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
-      else 0
-  have hterm_int : ∀ q ∈ Finset.range N,
-      MeasureTheory.Integrable
-        (fun t : ℝ =>
-          if (2 : ℝ) ≤ (q : ℝ) then
-            (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-              (t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
-          else 0)
-        (MeasureTheory.volume.restrict (Set.Ioi 0)) := by
-    intro q hq
-    by_cases hqcond : (2 : ℝ) ≤ (q : ℝ)
-    · have hq_nat : 2 ≤ q := by
-        exact_mod_cast hqcond
-      have hnq_two : 2 ≤ n * q := Nat.mul_le_mul hm hq_nat
-      have hnq_pos : 0 < (((n * q : ℕ) : ℝ)) := by
-        exact_mod_cast (lt_of_lt_of_le Nat.zero_lt_two hnq_two)
-      have hlog_nq_pos : 0 < Real.log (((n * q : ℕ) : ℝ)) := by
-        apply Real.log_pos
-        exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hnq_two)
-      have hbase_int : MeasureTheory.IntegrableOn
-          (fun t : ℝ => t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
-          (Set.Ioi 0) := by
-        have h := log_square_integral_kernel_integrable_local
-          (Real.log (((n * q : ℕ) : ℝ))) hlog_nq_pos
-        have hfun : (fun t : ℝ => t * Real.rpow (((n * q : ℕ) : ℝ)) (-t)) =
-            fun t : ℝ => t * Real.exp (-(Real.log (((n * q : ℕ) : ℝ)) * t)) := by
-          funext t
-          change t * (((n * q : ℕ) : ℝ) ^ (-t)) =
-            t * Real.exp (-(Real.log (((n * q : ℕ) : ℝ)) * t))
-          rw [Real.rpow_def_of_pos hnq_pos]
-          ring_nf
-        rw [hfun]
-        exact h
-      simpa [hqcond] using
-        hbase_int.const_mul (ArithmeticFunction.vonMangoldt q / (q : ℝ))
-    · simpa [hqcond]
-  have hF_int : MeasureTheory.IntegrableOn F (Set.Ioi 0) := by
-    have hF_int' : MeasureTheory.Integrable
-        (∑ q ∈ Finset.range N, fun t : ℝ =>
-          if (2 : ℝ) ≤ (q : ℝ) then
-            (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-              (t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
-          else 0)
-        (MeasureTheory.volume.restrict (Set.Ioi 0)) :=
-      MeasureTheory.integrable_finset_sum' (Finset.range N) hterm_int
-    dsimp [F, MeasureTheory.IntegrableOn]
-    convert hF_int' using 1
-    funext t
-    simp [Finset.sum_apply]
-  have hG_int : MeasureTheory.IntegrableOn
-      (fun t : ℝ => Real.exp (-(Real.log (n : ℝ) * t))) (Set.Ioi 0) := by
-    have hrate : -Real.log (n : ℝ) < 0 := by linarith
-    convert integrableOn_exp_mul_Ioi hrate 0 using 1
-    funext t
-    ring
-  have hsum_integral :
-      (∑ q ∈ Finset.range N,
-        if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) =
-        ∫ t : ℝ in Set.Ioi 0, F t := by
-    calc
-      (∑ q ∈ Finset.range N,
-        if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) =
-          ∑ q ∈ Finset.range N,
-            ∫ t : ℝ in Set.Ioi 0,
-              if (2 : ℝ) ≤ (q : ℝ) then
-                (ArithmeticFunction.vonMangoldt q / (q : ℝ)) *
-                  (t * Real.rpow (((n * q : ℕ) : ℝ)) (-t))
-              else 0 := by
-        apply Finset.sum_congr rfl
-        intro q hq
-        by_cases hqcond : (2 : ℝ) ≤ (q : ℝ)
-        · have hq_nat : 2 ≤ q := by
-            exact_mod_cast hqcond
-          simp [hqcond, mangoldt_tail_term_integral_local n q hm hq_nat]
-        · simp [hqcond]
-      _ = ∫ t : ℝ in Set.Ioi 0, F t := by
-        symm
-        dsimp [F]
-        exact MeasureTheory.integral_finset_sum (Finset.range N) hterm_int
-  have hpoint : ∀ t ∈ Set.Ioi (0 : ℝ),
-      F t ≤ Real.exp (-(Real.log (n : ℝ) * t)) := by
-    intro t ht
-    have htpos : 0 < t := ht
-    have hdir := mangoldt_dirichlet_series_finite_threshold_bound_local t htpos N
-    have hrpow_nonneg : 0 ≤ Real.rpow (n : ℝ) (-t) :=
-      Real.rpow_nonneg hn_pos.le (-t)
-    have hcoef_nonneg : 0 ≤ t * Real.rpow (n : ℝ) (-t) := by positivity
-    calc
-      F t = t * Real.rpow (n : ℝ) (-t) *
-          (∑ q ∈ Finset.range N,
-            if (2 : ℝ) ≤ (q : ℝ) then
-              ArithmeticFunction.vonMangoldt q / Real.rpow (q : ℝ) (1 + t)
-            else 0) := by
-        simpa [F] using mangoldt_tail_integrand_factor_local n N t hn
-      _ ≤ t * Real.rpow (n : ℝ) (-t) * (1 / t) := by
-        exact mul_le_mul_of_nonneg_left hdir hcoef_nonneg
-      _ = Real.rpow (n : ℝ) (-t) := by
-        field_simp [htpos.ne']
-      _ = Real.exp (-(Real.log (n : ℝ) * t)) := by
-        change ((n : ℝ) ^ (-t)) = Real.exp (-(Real.log (n : ℝ) * t))
-        rw [Real.rpow_def_of_pos hn_pos]
-        ring_nf
-  have hintegral_le :
-      (∫ t : ℝ in Set.Ioi 0, F t) ≤
-        ∫ t : ℝ in Set.Ioi 0, Real.exp (-(Real.log (n : ℝ) * t)) := by
-    exact MeasureTheory.setIntegral_mono_on hF_int hG_int measurableSet_Ioi hpoint
-  have hG_integral :
-      (∫ t : ℝ in Set.Ioi 0, Real.exp (-(Real.log (n : ℝ) * t))) =
-        1 / Real.log (n : ℝ) := by
-    have hrate : -Real.log (n : ℝ) < 0 := by linarith
-    have h := integral_exp_mul_Ioi (a := -Real.log (n : ℝ)) hrate 0
-    simpa [hlog_pos.ne'] using h
-  calc
-    (∑ q ∈ Finset.range N,
-      if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) =
-        ∫ t : ℝ in Set.Ioi 0, F t := hsum_integral
-    _ ≤ ∫ t : ℝ in Set.Ioi 0, Real.exp (-(Real.log (n : ℝ) * t)) := hintegral_le
-    _ = 1 / Real.log (n : ℝ) := hG_integral
-
-@[blueprint "lem:mangoldt-subinvariant-bound"
-  (statement := /-- For every natural number $n$ with $n\geq 2$,
-  $\log n\sum_{q\in\mathbb{N},\ q\geq 2}
-  \Lambda(q)/(q\log^2(nq))\leq 1$. -/)
-  (proof := /-- Fix a natural number $n\geq 2$.  By
-  \cref{lem:mangoldt-tail-range-subinvariant-local}, every finite partial sum
-  of the non-negative tail summands is at most $1/\log n$.  Therefore the
-  corresponding real series is summable and its t-sum, which is
-  \cref{def:mangoldt-tail-sum} with threshold $2$, is also at most
-  $1/\log n$.  Since $\log n>0$, multiplying this inequality by $\log n$ gives
-  the asserted bound. -/)
-  (title := /-- Non-asymptotic sub-invariance estimate -/)
-  (latexEnv := "lemma")]
-lemma mangoldt_subinvariant_bound :
-    ∀ n : ℕ, 2 ≤ n -> Real.log (n : ℝ) * mangoldt_tail_sum n 2 ≤ 1 := by
-  intro n hn
-  have hlog_pos : 0 < Real.log (n : ℝ) := by
-    apply Real.log_pos
-    exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hn)
-  have hnonneg : ∀ q : ℕ, 0 ≤
-      (if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) := by
-    intro q
-    split_ifs
-    · exact div_nonneg ArithmeticFunction.vonMangoldt_nonneg (by positivity)
-    · norm_num
-  have hbound : ∀ N : ℕ,
-      (∑ q ∈ Finset.range N,
-        if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) ≤
-        1 / Real.log (n : ℝ) := by
-    intro N
-    exact mangoldt_tail_range_subinvariant_local n N hn
-  have hsumm : Summable (fun q : ℕ =>
-      if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) :=
-    summable_of_sum_range_le hnonneg hbound
-  have htail : mangoldt_tail_sum n 2 ≤ 1 / Real.log (n : ℝ) := by
-    simpa [mangoldt_tail_sum] using hsumm.tsum_le_of_sum_range_le hbound
-  calc
-    Real.log (n : ℝ) * mangoldt_tail_sum n 2 ≤
-        Real.log (n : ℝ) * (1 / Real.log (n : ℝ)) := by
-      exact mul_le_mul_of_nonneg_left htail hlog_pos.le
-    _ = 1 := by
-      field_simp [hlog_pos.ne']
-
 @[blueprint "def:finite-chain-initial-mass"
   (statement := /-- For real parameters $x$ and $X$, and for a natural number
   $n$, this is the finite initial mass
@@ -2496,526 +1130,6 @@ noncomputable def finite_chain_initial_mass (x X : ℝ) (n : ℕ) : ℝ :=
             Real.log ((n * q : ℕ) : ℝ)
         else 0
   else 0
-
-@[blueprint "lem:finite-chain-erdos-le-initial-mass"
-  (statement := /-- Let $x\geq2$, let $X$ be real, and let $A\subseteq\mathbb N$
-  be primitive and supported in $[x,X]$. Then the Erd\H{o}s sum of $A$ is at
-  most the total finite initial mass $\sum_n b_{x,X}(n)$ from
-  \cref{def:finite-chain-initial-mass}. -/)
-  (proof := /-- Put $b(n)=b_{x,X}(n)$ as in
-  \cref{def:finite-chain-initial-mass}. First prove $b(n)\geq0$ for every
-  $n$. If $x\leq n\leq X$, then $n\geq2$; the finite incoming sum over $q$ with
-  $nq\leq X$ is bounded by $n^{-1}$ times the full tail at threshold $2$, using
-  \cref{lem:mangoldt-tail-finite-sum-le}, and
-  \cref{lem:mangoldt-subinvariant-bound} bounds this by
-  $(n\log n)^{-1}=\nu_0(n)$. Outside $[x,X]$ the mass is zero.
-  It remains to bound each finite partial sum of \cref{def:erdos-sum}. Fix a
-  finite set of indices $s$ and restrict to the finite interval
-  $R=\{n:x\leq n\leq X\}$. Let $H(n)$ be the indicator that $n$ is divisible by
-  some element of $A\cap s$. For each $r\in R$, the contribution of
-  $A\cap s$ at $r$ plus the $H$-weighted incoming contribution from factor pairs
-  $nq=r$ is at most $H(r)\nu_0(r)$. If $r\in A\cap s$, the incoming term
-  vanishes by \cref{def:primitive-set}; if $H(r)=0$, it vanishes by definition;
-  otherwise it is bounded by the full von Mangoldt divisor sum, which is
-  $\log r$ by \cref{lem:von-mangoldt-divisor-sum}. Summing these inequalities
-  over $r\in R$ and reindexing the fibers $(n,q)$ gives the partial-sum bound
-  by $\sum_{n\in R}H(n)b(n)$. Since $0\leq H(n)\leq1$ and $b(n)\geq0$, this is
-  at most $\sum_{n\in R}b(n)$, which is the stated t-sum because
-  \cref{def:supported-in-interval,def:finite-chain-initial-mass} gives finite
-  support. -/)
-  (title := /-- Hitting mass bounds the finite Erd\H{o}s sum -/)
-  (latexEnv := "lemma")]
-lemma finite_chain_erdos_le_initial_mass (A : Set ℕ) (x X : ℝ) (hx : 2 ≤ x)
-    (hprim : primitive_set A) (hsupp : supported_in_interval A x X) :
-    erdos_sum A ≤ ∑' n : ℕ, finite_chain_initial_mass x X n := by
-  classical
-  have hmass_nonneg : ∀ n : ℕ, 0 ≤ finite_chain_initial_mass x X n := by
-    intro n
-    rw [finite_chain_initial_mass]
-    by_cases hnint : x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X
-    · rw [if_pos hnint]
-      have hn_two : 2 ≤ n := by exact_mod_cast (le_trans hx hnint.1)
-      have hn_one : 1 ≤ n := by omega
-      have hlog_pos : 0 < Real.log (n : ℝ) := by
-        apply Real.log_pos
-        exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hn_two)
-      have hinner_le :
-          (∑' q : ℕ,
-            if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-              erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                Real.log ((n * q : ℕ) : ℝ)
-            else 0) ≤ (1 / (n : ℝ)) * mangoldt_tail_sum n 2 := by
-        apply tsum_le_of_sum_le'
-        · apply mul_nonneg
-          · positivity
-          · rw [mangoldt_tail_sum]
-            apply tsum_nonneg
-            intro q
-            split_ifs
-            · rw [mangoldt_tail_term]
-              exact div_nonneg ArithmeticFunction.vonMangoldt_nonneg (by positivity)
-            · norm_num
-        · intro s
-          have hpoint : ∀ q : ℕ,
-              (if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-                erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                  Real.log ((n * q : ℕ) : ℝ)
-              else 0) ≤
-                (1 / (n : ℝ)) *
-                  (if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) := by
-            intro q
-            by_cases hqcond : 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X
-            · rw [if_pos hqcond]
-              have hqreal : (2 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hqcond.1
-              rw [if_pos hqreal]
-              rw [erdos_weight, mangoldt_tail_term]
-              rw [Nat.cast_mul]
-              ring_nf
-              exact le_rfl
-            · rw [if_neg hqcond]
-              apply mul_nonneg
-              · positivity
-              · split_ifs
-                · rw [mangoldt_tail_term]
-                  exact div_nonneg ArithmeticFunction.vonMangoldt_nonneg (by positivity)
-                · norm_num
-          calc
-            (∑ q ∈ s,
-              if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-                erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                  Real.log ((n * q : ℕ) : ℝ)
-              else 0) ≤
-                ∑ q ∈ s,
-                  (1 / (n : ℝ)) *
-                    (if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) := by
-                apply Finset.sum_le_sum
-                intro q _
-                exact hpoint q
-            _ = (1 / (n : ℝ)) *
-                  ∑ q ∈ s,
-                    (if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) := by
-                rw [Finset.mul_sum]
-            _ ≤ (1 / (n : ℝ)) * mangoldt_tail_sum n 2 := by
-                exact mul_le_mul_of_nonneg_left
-                  (mangoldt_tail_finite_sum_le n hn_one 2 (by norm_num) s) (by positivity)
-      have htail_le : mangoldt_tail_sum n 2 ≤ 1 / Real.log (n : ℝ) := by
-        rw [le_div_iff₀ hlog_pos]
-        simpa [mul_comm] using mangoldt_subinvariant_bound n hn_two
-      have hscaled_le : (1 / (n : ℝ)) * mangoldt_tail_sum n 2 ≤ erdos_weight n := by
-        calc
-          (1 / (n : ℝ)) * mangoldt_tail_sum n 2 ≤
-              (1 / (n : ℝ)) * (1 / Real.log (n : ℝ)) := by
-              exact mul_le_mul_of_nonneg_left htail_le (by positivity)
-          _ = erdos_weight n := by
-              rw [erdos_weight]
-              ring_nf
-      linarith
-    · rw [if_neg hnint]
-  rw [erdos_sum]
-  apply tsum_le_of_sum_le'
-  · exact tsum_nonneg hmass_nonneg
-  · intro s
-    let M : ℕ := ⌈X⌉₊ + 1
-    let R : Finset ℕ := (Finset.range M).filter (fun n => x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X)
-    have hb_tsum_eq :
-        (∑' n : ℕ, finite_chain_initial_mass x X n) =
-          ∑ n ∈ R, finite_chain_initial_mass x X n := by
-      exact tsum_eq_sum (s := R) (fun n hn => by
-        have hnnot : ¬ (x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X) := by
-          intro hnx
-          apply hn
-          have hn_le_ceil : n ≤ ⌈X⌉₊ := by
-            exact_mod_cast (le_trans hnx.2 (Nat.le_ceil X))
-          have hn_lt_M : n < M := by
-            dsimp [M]
-            omega
-          simp [R, hn_lt_M, hnx]
-        rw [finite_chain_initial_mass, if_neg hnnot])
-    have hleft_eq :
-        (∑ i ∈ s, A.indicator erdos_weight i) =
-          ∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0 := by
-      have hs_eq :
-          (∑ i ∈ s, A.indicator erdos_weight i) =
-            ∑ i ∈ s.filter (fun i => i ∈ A), erdos_weight i := by
-        rw [Finset.sum_filter]
-        apply Finset.sum_congr rfl
-        intro i hi
-        by_cases hiA : i ∈ A
-        · simp [Set.indicator_of_mem hiA, hiA]
-        · simp [Set.indicator_of_notMem hiA, hiA]
-      have hR_eq :
-          (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) =
-            ∑ n ∈ R.filter (fun n => n ∈ s ∧ n ∈ A), erdos_weight n := by
-        exact (Finset.sum_filter (s := R)
-          (p := fun n => n ∈ s ∧ n ∈ A) (f := erdos_weight)).symm
-      rw [hs_eq, hR_eq]
-      symm
-      apply Finset.sum_bij (fun n hn => n)
-      · intro n hn
-        simp only [Finset.mem_filter] at hn ⊢
-        exact ⟨hn.2.1, hn.2.2⟩
-      · intro a ha b hb h
-        exact h
-      · intro b hb
-        simp only [Finset.mem_filter] at hb
-        have hB := hsupp b hb.2
-        have hb_le_ceil : b ≤ ⌈X⌉₊ := by
-          exact_mod_cast (le_trans hB.2 (Nat.le_ceil X))
-        have hb_lt_M : b < M := by
-          dsimp [M]
-          omega
-        refine ⟨b, ?_, rfl⟩
-        simp [R, hb_lt_M, hB, hb]
-      · intro n hn
-        rfl
-    have hmass_finite (n : ℕ) (hnR : n ∈ R) :
-        finite_chain_initial_mass x X n = erdos_weight n -
-          ∑ q ∈ Finset.range M,
-            if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-              erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                Real.log ((n * q : ℕ) : ℝ)
-            else 0 := by
-      have hnR' : n < M ∧ x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X := by
-        simpa [R] using hnR
-      have hnint : x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X := hnR'.2
-      rw [finite_chain_initial_mass, if_pos hnint]
-      congr 1
-      exact tsum_eq_sum (s := Finset.range M) (fun q hq => by
-        have hqnot : ¬ (2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X) := by
-          intro hcond
-          apply hq
-          have hq_le_prod : q ≤ n * q := by
-            have hn_one : 1 ≤ n := by
-              have hn_two : 2 ≤ n := by exact_mod_cast (le_trans hx hnint.1)
-              omega
-            exact Nat.le_mul_of_pos_left q hn_one
-          have hq_le_X : (q : ℝ) ≤ X := by
-            have : ((q : ℕ) : ℝ) ≤ ((n * q : ℕ) : ℝ) := by
-              exact_mod_cast hq_le_prod
-            exact le_trans this hcond.2
-          have hq_le_ceil : q ≤ ⌈X⌉₊ := by
-            exact_mod_cast (le_trans hq_le_X (Nat.le_ceil X))
-          have hq_lt_M : q < M := by
-            dsimp [M]
-            omega
-          exact Finset.mem_range.mpr hq_lt_M
-        rw [if_neg hqnot])
-    have hfinite :
-        (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) ≤
-          ∑ n ∈ R, finite_chain_initial_mass x X n := by
-      let shadow : ℕ → ℝ := fun n =>
-        if ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ n then 1 else 0
-      let pairs : Finset (ℕ × ℕ) := R.product (Finset.range M)
-      let pairTerm : ℕ × ℕ → ℝ := fun p =>
-        if 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X) then
-          shadow p.1 * (erdos_weight (p.1 * p.2) *
-            ArithmeticFunction.vonMangoldt p.2 / Real.log ((p.1 * p.2 : ℕ) : ℝ))
-        else 0
-      have hshadow_le_one : ∀ n, shadow n ≤ 1 := by
-        intro n
-        dsimp [shadow]
-        split_ifs <;> norm_num
-      have hfiber_bound : ∀ r ∈ R,
-          ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p ≤ erdos_weight r := by
-        intro r hr
-        have hrR : r < M ∧ x ≤ (r : ℝ) ∧ (r : ℝ) ≤ X := by
-          simpa [R] using hr
-        have hr_two : 2 ≤ r := by exact_mod_cast (le_trans hx hrR.2.1)
-        have hr_ne : r ≠ 0 := by omega
-        have hlog_pos : 0 < Real.log (r : ℝ) := by
-          apply Real.log_pos
-          exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hr_two)
-        let F : Finset (ℕ × ℕ) := pairs.filter (fun p => p.1 * p.2 = r)
-        let boundTerm : ℕ → ℝ := fun q =>
-          erdos_weight r * ArithmeticFunction.vonMangoldt q / Real.log (r : ℝ)
-        have hbound_nonneg : ∀ q, 0 ≤ boundTerm q := by
-          intro q
-          dsimp [boundTerm]
-          have hw : 0 ≤ erdos_weight r := by
-            rw [erdos_weight]
-            positivity
-          exact div_nonneg (mul_nonneg hw ArithmeticFunction.vonMangoldt_nonneg) hlog_pos.le
-        have hpoint : ∀ p ∈ F, pairTerm p ≤ boundTerm p.2 := by
-          intro p hp
-          have hp' := Finset.mem_filter.mp hp
-          have hprod : p.1 * p.2 = r := hp'.2
-          dsimp [pairTerm, boundTerm]
-          by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
-          · rw [if_pos hcond, hprod]
-            simpa using
-              mul_le_mul_of_nonneg_right (hshadow_le_one p.1) (hbound_nonneg p.2)
-          · rw [if_neg hcond]
-            exact hbound_nonneg p.2
-        have hsum_le : (∑ p ∈ F, pairTerm p) ≤ ∑ p ∈ F, boundTerm p.2 := by
-          apply Finset.sum_le_sum
-          intro p hp
-          exact hpoint p hp
-        have hsum_image : (∑ p ∈ F, boundTerm p.2) =
-            ∑ q ∈ F.image Prod.snd, boundTerm q := by
-          symm
-          rw [Finset.sum_image]
-          intro a ha b hb hab
-          have ha' := Finset.mem_filter.mp ha
-          have hb' := Finset.mem_filter.mp hb
-          have hpa : a.1 * a.2 = r := ha'.2
-          have hpb : b.1 * b.2 = r := hb'.2
-          have ha2_pos : 0 < a.2 := by
-            by_contra hnot
-            have ha2z : a.2 = 0 := Nat.eq_zero_of_not_pos hnot
-            rw [ha2z] at hpa
-            simp at hpa
-            exact hr_ne hpa.symm
-          have hfst : a.1 = b.1 := by
-            apply Nat.mul_right_cancel ha2_pos
-            rw [hpa, hab, hpb]
-          exact Prod.ext hfst hab
-        have himage_subset : F.image Prod.snd ⊆ r.divisors := by
-          intro q hq
-          rcases Finset.mem_image.mp hq with ⟨p, hp, rfl⟩
-          have hp' := Finset.mem_filter.mp hp
-          have hprod : p.1 * p.2 = r := hp'.2
-          have hqdiv : p.2 ∣ r := by
-            refine ⟨p.1, ?_⟩
-            rw [mul_comm, hprod]
-          exact Nat.mem_divisors.mpr ⟨hqdiv, hr_ne⟩
-        have himage_le : (∑ q ∈ F.image Prod.snd, boundTerm q) ≤
-            ∑ q ∈ r.divisors, boundTerm q := by
-          apply Finset.sum_le_sum_of_subset_of_nonneg
-          · exact himage_subset
-          · intro q hq hqnot
-            exact hbound_nonneg q
-        have hdiv_eq : (∑ q ∈ r.divisors, boundTerm q) = erdos_weight r := by
-          dsimp [boundTerm]
-          calc
-            (∑ q ∈ r.divisors,
-              erdos_weight r * ArithmeticFunction.vonMangoldt q / Real.log (r : ℝ)) =
-                (erdos_weight r / Real.log (r : ℝ)) *
-                  ∑ q ∈ r.divisors, ArithmeticFunction.vonMangoldt q := by
-                rw [Finset.mul_sum]
-                apply Finset.sum_congr rfl
-                intro q hq
-                ring
-            _ = (erdos_weight r / Real.log (r : ℝ)) * Real.log (r : ℝ) := by
-                rw [von_mangoldt_divisor_sum]
-            _ = erdos_weight r := by
-                field_simp [hlog_pos.ne']
-        calc
-          (∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p) =
-              ∑ p ∈ F, pairTerm p := rfl
-          _ ≤ ∑ p ∈ F, boundTerm p.2 := hsum_le
-          _ = ∑ q ∈ F.image Prod.snd, boundTerm q := hsum_image
-          _ ≤ ∑ q ∈ r.divisors, boundTerm q := himage_le
-          _ = erdos_weight r := hdiv_eq
-      have hfiber_zero_active : ∀ r ∈ R, r ∈ s ∧ r ∈ A ->
-          ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p = 0 := by
-        intro r hr hactive
-        apply Finset.sum_eq_zero
-        intro p hp
-        have hp' := Finset.mem_filter.mp hp
-        have hprod : p.1 * p.2 = r := hp'.2
-        dsimp [pairTerm]
-        by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
-        · rw [if_pos hcond]
-          have hshadow_p1 : shadow p.1 = 0 := by
-            dsimp [shadow]
-            rw [if_neg]
-            intro hex
-            rcases hex with ⟨a, has, haA, hadiv⟩
-            have hadivr : a ∣ r := by
-              rcases hadiv with ⟨k, hk⟩
-              refine ⟨k * p.2, ?_⟩
-              rw [← hprod, hk, Nat.mul_assoc]
-            have har : a = r := hprim.eq haA hactive.2 hadivr
-            subst a
-            have hrR : r < M ∧ x ≤ (r : ℝ) ∧ (r : ℝ) ≤ X := by
-              simpa [R] using hr
-            have hp2_gt_one : 1 < p.2 := by omega
-            have hp1_pos : 0 < p.1 := by
-              by_contra hp10
-              have hp1z : p.1 = 0 := Nat.eq_zero_of_not_pos hp10
-              rw [hp1z] at hprod
-              simp at hprod
-              have hr_two : 2 ≤ r := by exact_mod_cast (le_trans hx hrR.2.1)
-              omega
-            have hp1_lt_r : p.1 < r := by
-              rw [← hprod]
-              exact lt_mul_of_one_lt_right hp1_pos hp2_gt_one
-            exact not_le_of_gt hp1_lt_r (Nat.le_of_dvd hp1_pos hadiv)
-          rw [hshadow_p1]
-          ring
-        · rw [if_neg hcond]
-      have hshadow_factor_zero : ∀ r ∈ R, shadow r = 0 ->
-          ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p = 0 := by
-        intro r hr hsr
-        apply Finset.sum_eq_zero
-        intro p hp
-        have hp' := Finset.mem_filter.mp hp
-        have hprod : p.1 * p.2 = r := hp'.2
-        dsimp [pairTerm]
-        by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
-        · rw [if_pos hcond]
-          have hshadow_p1 : shadow p.1 = 0 := by
-            dsimp [shadow] at hsr ⊢
-            by_cases hex : ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ p.1
-            · exfalso
-              have hexr : ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ r := by
-                rcases hex with ⟨a, has, haA, hadiv⟩
-                refine ⟨a, has, haA, ?_⟩
-                rcases hadiv with ⟨k, hk⟩
-                refine ⟨k * p.2, ?_⟩
-                rw [← hprod, hk, Nat.mul_assoc]
-              rw [if_pos hexr] at hsr
-              norm_num at hsr
-            · rw [if_neg hex]
-          rw [hshadow_p1]
-          ring
-        · rw [if_neg hcond]
-      have hfiber : ∀ r ∈ R,
-          (if r ∈ s ∧ r ∈ A then erdos_weight r else 0) +
-            ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p ≤
-              shadow r * erdos_weight r := by
-        intro r hr
-        by_cases hactive : r ∈ s ∧ r ∈ A
-        · have hsh : shadow r = 1 := by
-            dsimp [shadow]
-            rw [if_pos]
-            exact ⟨r, hactive.1, hactive.2, dvd_rfl⟩
-          rw [if_pos hactive, hfiber_zero_active r hr hactive, hsh]
-          linarith
-        · rw [if_neg hactive]
-          by_cases hshadow : shadow r = 0
-          · rw [hshadow_factor_zero r hr hshadow, hshadow]
-            norm_num
-          · have hsh : shadow r = 1 := by
-              dsimp [shadow] at hshadow ⊢
-              by_cases hex : ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ r
-              · rw [if_pos hex]
-              · rw [if_neg hex] at hshadow
-                exfalso
-                exact hshadow rfl
-            rw [hsh]
-            simpa using hfiber_bound r hr
-      have hsum_fiber :
-          (∑ r ∈ R, ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p) =
-            ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p := by
-        exact Finset.sum_fiberwise_eq_sum_filter pairs R
-          (fun p : ℕ × ℕ => p.1 * p.2) pairTerm
-      have hupper :
-          (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) +
-              ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p ≤
-            ∑ n ∈ R, shadow n * erdos_weight n := by
-        calc
-          (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) +
-              ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p =
-                ∑ n ∈ R,
-                  ((if n ∈ s ∧ n ∈ A then erdos_weight n else 0) +
-                    ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = n), pairTerm p) := by
-                rw [Finset.sum_add_distrib, hsum_fiber]
-          _ ≤ ∑ n ∈ R, shadow n * erdos_weight n := by
-                apply Finset.sum_le_sum
-                intro n hn
-                exact hfiber n hn
-      have hpair_all_eq :
-          (∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p) =
-            ∑ p ∈ pairs, pairTerm p := by
-        apply Finset.sum_subset
-        · intro p hp
-          exact (Finset.mem_filter.mp hp).1
-        · intro p hpairs hpnot
-          have hprod_not : p.1 * p.2 ∉ R := by
-            intro hpR
-            apply hpnot
-            simp [hpairs, hpR]
-          have hp : p.1 ∈ R ∧ p.2 ∈ Finset.range M := by
-            simpa [pairs] using hpairs
-          dsimp [pairTerm]
-          by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
-          · exfalso
-            apply hprod_not
-            have hp1R : p.1 < M ∧ x ≤ (p.1 : ℝ) ∧ (p.1 : ℝ) ≤ X := by
-              simpa [R] using hp.1
-            have hp2one : 1 ≤ p.2 := by omega
-            have hp1_le_prod : p.1 ≤ p.1 * p.2 :=
-              Nat.le_mul_of_pos_right p.1 hp2one
-            have hxprod : x ≤ ((p.1 * p.2 : ℕ) : ℝ) := by
-              have : (p.1 : ℝ) ≤ ((p.1 * p.2 : ℕ) : ℝ) := by
-                exact_mod_cast hp1_le_prod
-              exact le_trans hp1R.2.1 this
-            have hprod_le_ceil : p.1 * p.2 ≤ ⌈X⌉₊ := by
-              exact_mod_cast (le_trans hcond.2 (Nat.le_ceil X))
-            have hprod_lt_M : p.1 * p.2 < M := by
-              dsimp [M]
-              omega
-            simp only [R, Finset.mem_filter, Finset.mem_range]
-            exact ⟨hprod_lt_M, by simpa [Nat.cast_mul] using hxprod,
-              by simpa [Nat.cast_mul] using hcond.2⟩
-          · rw [if_neg hcond]
-      have hpair_product :
-          (∑ p ∈ pairs, pairTerm p) =
-            ∑ n ∈ R, shadow n *
-              ∑ q ∈ Finset.range M,
-                if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-                  erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                    Real.log ((n * q : ℕ) : ℝ)
-                else 0 := by
-        dsimp [pairs, pairTerm]
-        rw [Finset.sum_product]
-        apply Finset.sum_congr rfl
-        intro n hn
-        simp only [Prod.fst, Prod.snd]
-        rw [Finset.mul_sum]
-        apply Finset.sum_congr rfl
-        intro q hq
-        by_cases hcond : 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X
-        · simp [hcond]
-        · simp [hcond]
-      have hshadow_bound :
-          (∑ n ∈ R, shadow n * erdos_weight n) ≤
-            (∑ n ∈ R, finite_chain_initial_mass x X n) +
-              ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p := by
-        rw [hpair_all_eq, hpair_product]
-        calc
-          (∑ n ∈ R, shadow n * erdos_weight n) =
-              ∑ n ∈ R, shadow n *
-                (finite_chain_initial_mass x X n +
-                  ∑ q ∈ Finset.range M,
-                    if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-                      erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                        Real.log ((n * q : ℕ) : ℝ)
-                    else 0) := by
-                apply Finset.sum_congr rfl
-                intro n hn
-                rw [hmass_finite n hn]
-                ring
-          _ = (∑ n ∈ R, shadow n * finite_chain_initial_mass x X n) +
-              ∑ n ∈ R, shadow n *
-                ∑ q ∈ Finset.range M,
-                  if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-                    erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                      Real.log ((n * q : ℕ) : ℝ)
-                  else 0 := by
-                rw [← Finset.sum_add_distrib]
-                apply Finset.sum_congr rfl
-                intro n hn
-                ring
-          _ ≤ (∑ n ∈ R, finite_chain_initial_mass x X n) +
-              ∑ n ∈ R, shadow n *
-                ∑ q ∈ Finset.range M,
-                  if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
-                    erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
-                      Real.log ((n * q : ℕ) : ℝ)
-                  else 0 := by
-                have hsum_le :
-                    (∑ n ∈ R, shadow n * finite_chain_initial_mass x X n) ≤
-                      ∑ n ∈ R, finite_chain_initial_mass x X n := by
-                  apply Finset.sum_le_sum
-                  intro n hn
-                  simpa using
-                    mul_le_mul_of_nonneg_right (hshadow_le_one n) (hmass_nonneg n)
-                linarith
-      linarith
-    rw [hb_tsum_eq, hleft_eq]
-    exact hfinite
 
 @[blueprint "lem:finite-chain-initial-mass-sum-eq-cut-capacity"
   (statement := /-- For every $x\geq2$ and every real $X$, the total finite
@@ -3419,28 +1533,6 @@ lemma finite_chain_initial_mass_sum_eq_cut_capacity (x X : ℝ) (hx : 2 ≤ x) :
     exact hfinal_point r hrint
   · rw [if_neg hrint, if_neg hrint, if_neg hrint]
     ring
-
-@[blueprint "lem:finite-chain-cut-bound"
-  (statement := /-- Let $x,X\in\mathbb{R}$ with $2\leq x$, and let
-  $A\subseteq\mathbb{N}$ be a primitive set supported in $[x,X]$. Then $f(A)$
-  is at most the finite von Mangoldt cut capacity associated with $x$ and
-  $X$. -/)
-  (proof := /-- Apply \cref{lem:finite-chain-erdos-le-initial-mass} to the
-  primitive set $A$ and the support interval $[x,X]$.  This bounds $f(A)$ by the
-  total initial mass of the finite von Mangoldt chain.  The exact finite
-  reindexing identity \cref{lem:finite-chain-initial-mass-sum-eq-cut-capacity}
-  then identifies that total initial mass with \cref{def:cut-capacity}, giving
-  the asserted inequality. -/)
-  (title := /-- Finite chain cut bound -/)
-  (latexEnv := "lemma")]
-lemma finite_chain_cut_bound (A : Set ℕ) (x X : ℝ) (hx : 2 ≤ x)
-    (hprim : primitive_set A) (hsupp : supported_in_interval A x X) :
-    erdos_sum A ≤ cut_capacity x X := by
-  calc
-    erdos_sum A ≤ ∑' n : ℕ, finite_chain_initial_mass x X n :=
-      finite_chain_erdos_le_initial_mass A x X hx hprim hsupp
-    _ = cut_capacity x X :=
-      finite_chain_initial_mass_sum_eq_cut_capacity x X hx
 
 @[blueprint "lem:cut-capacity-le-tail-majorant"
   (statement := /-- For every $x\geq 2$ and every real $X$, the finite cut
@@ -3872,31 +1964,6 @@ lemma tail_majorant_bound :
       _ = 1 + C / L := hcombine
   exact le_trans htail_le_main halg
 
-@[blueprint "lem:finite-large-primitive-bound"
-  (statement := /-- There exists a real constant $C\geq 0$ such that, for all
-  real numbers $x$ and $X$ with $2\leq x\leq X$, every primitive set
-  $A\subseteq\mathbb{N}$ supported in $[x,X]$ has Erd\H{o}s sum at most
-  $1+C/\log x$. -/)
-  (proof := /-- Choose the nonnegative constant supplied by
-  \cref{lem:tail-majorant-bound}.  To prove \cref{def:erdos1196-finite-bound},
-  fix real numbers $x$ and $X$ with $2\leq x\leq X$ and a primitive set
-  $A\subseteq\mathbb{N}$ supported in $[x,X]$.  By
-  \cref{lem:finite-chain-cut-bound}, the Erd\H{o}s sum of $A$ is at most
-  \cref{def:cut-capacity}.  The latter is at most \cref{def:tail-majorant} by
-  \cref{lem:cut-capacity-le-tail-majorant}, and this is at most
-  $1+C/\log x$ by \cref{lem:tail-majorant-bound}. -/)
-  (title := /-- Finite large primitive-set bound -/)
-  (latexEnv := "lemma")]
-lemma finite_large_primitive_bound :
-    ∃ C : ℝ, erdos1196_finite_bound C := by
-  obtain ⟨C, hC_nonneg, hC_bound⟩ := tail_majorant_bound
-  refine ⟨C, hC_nonneg, ?_⟩
-  intro x X hx _ A hprim hsupp
-  calc
-    erdos_sum A ≤ cut_capacity x X := finite_chain_cut_bound A x X hx hprim hsupp
-    _ ≤ tail_majorant x := cut_capacity_le_tail_majorant x X hx
-    _ ≤ 1 + C / Real.log x := hC_bound x hx
-
 @[blueprint "lem:finite-truncation-principle"
   (statement := /-- If there is a real constant $C\geq 0$ such that every
   primitive set supported in a finite interval $[x,X]$ with $2\leq x\leq X$
@@ -3970,6 +2037,812 @@ lemma finite_truncation_principle :
   have hsum_le : (∑' n : ℕ, f n) ≤ 1 + C / Real.log x :=
     hf_summable.tsum_le_of_sum_range_le hpartial
   simpa [erdos_sum, f] using hsum_le
+
+@[blueprint "lem:inv-mul-log-sq-sum-le-div-log"
+  (statement := /-- For every real $x\geq 2$, real $X$, and finite set
+  $R\subseteq\mathbb{N}$ contained in $[x,X]$, one has
+  $\sum_{n\in R}(n\log^2 n)^{-1}\leq 2/\log x$. -/)
+  (proof := /-- Embed $R$ into the integer interval $[\lceil x\rceil, \lceil X\rceil+1)$.
+  The first term $n=\lceil x\rceil$ is bounded by $1/\log x$ since
+  $2\log 2\geq 1$.  For every subsequent $n\geq \lceil x\rceil + 1$, the
+  elementary inequality $1/n\leq \log n - \log(n-1)$ bounds
+  $(n\log^2 n)^{-1}\leq (\log(n-1))^{-1} - (\log n)^{-1}$, which telescopes to
+  at most $1/\log\lceil x\rceil \leq 1/\log x$. -/)
+  (title := /-- Elementary telescoping bound for $\sum (n\log^2 n)^{-1}$ -/)
+  (latexEnv := "lemma")]
+lemma inv_mul_log_sq_sum_le_div_log (x X : ℝ) (hx : 2 ≤ x) (R : Finset ℕ)
+    (hR : ∀ n ∈ R, x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X) :
+    (∑ n ∈ R, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) ≤ 2 / Real.log x := by
+  let k : ℕ := ⌈x⌉₊
+  let M : ℕ := ⌈X⌉₊ + 1
+  have hlogx_pos : 0 < Real.log x := Real.log_pos (by linarith)
+  have hxk : x ≤ (k : ℝ) := Nat.le_ceil x
+  have hk_two_real : (2 : ℝ) ≤ (k : ℝ) := le_trans hx hxk
+  have hk_two : 2 ≤ k := by exact_mod_cast hk_two_real
+  have hR_sub : R ⊆ Finset.Ico k M := by
+    intro n hn
+    have hn_int := hR n hn
+    rw [Finset.mem_Ico]
+    constructor
+    · exact Nat.ceil_le.mpr hn_int.1
+    · have hn_le : n ≤ ⌈X⌉₊ := by
+        exact_mod_cast (le_trans hn_int.2 (Nat.le_ceil X))
+      omega
+  have hterm_nonneg : ∀ n : ℕ, 0 ≤ 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) := by
+    intro n
+    positivity
+  have hsum_le_ico :
+      (∑ n ∈ R, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) ≤
+        ∑ n ∈ Finset.Ico k M, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) :=
+    Finset.sum_le_sum_of_subset_of_nonneg hR_sub (fun n _ _ => hterm_nonneg n)
+  by_cases hMk : M ≤ k
+  · rw [Finset.Ico_eq_empty_of_le hMk, Finset.sum_empty] at hsum_le_ico
+    exact le_trans hsum_le_ico (by positivity)
+  · have hkM : k < M := not_le.mp hMk
+    have hsplit :
+        (∑ n ∈ Finset.Ico k M, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) =
+          1 / ((k : ℝ) * (Real.log (k : ℝ)) ^ 2) +
+            ∑ n ∈ Finset.Ico (k + 1) M, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) := by
+      exact Finset.sum_eq_sum_Ico_succ_bot hkM _
+    have hlog2_pos : 0 < Real.log (2 : ℝ) := Real.log_pos (by norm_num)
+    have hlogk_ge_logx : Real.log x ≤ Real.log (k : ℝ) :=
+      Real.log_le_log (by linarith) hxk
+    have hlogk_ge_log2 : Real.log (2 : ℝ) ≤ Real.log (k : ℝ) :=
+      Real.log_le_log (by norm_num) hk_two_real
+    have hlogk_pos : 0 < Real.log (k : ℝ) := lt_of_lt_of_le hlogx_pos hlogk_ge_logx
+    have h2log2_ge_one : (1 : ℝ) ≤ 2 * Real.log (2 : ℝ) := by
+      have h := Real.log_two_gt_d9
+      linarith
+    have hfirst_le : 1 / ((k : ℝ) * (Real.log (k : ℝ)) ^ 2) ≤ 1 / Real.log x := by
+      apply one_div_le_one_div_of_le hlogx_pos
+      have hklogk : (1 : ℝ) ≤ (k : ℝ) * Real.log (k : ℝ) := by
+        calc
+          (1 : ℝ) ≤ 2 * Real.log (2 : ℝ) := h2log2_ge_one
+          _ ≤ (k : ℝ) * Real.log (k : ℝ) := by
+            exact mul_le_mul hk_two_real hlogk_ge_log2 hlog2_pos.le (by linarith)
+      calc
+        Real.log x ≤ 1 * Real.log (k : ℝ) := by linarith
+        _ ≤ ((k : ℝ) * Real.log (k : ℝ)) * Real.log (k : ℝ) := by
+          exact mul_le_mul_of_nonneg_right hklogk hlogk_pos.le
+        _ = (k : ℝ) * (Real.log (k : ℝ)) ^ 2 := by ring
+    let g : ℕ → ℝ := fun m => 1 / Real.log (m : ℝ)
+    have htail_le :
+        (∑ n ∈ Finset.Ico (k + 1) M, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) ≤
+          ∑ n ∈ Finset.Ico (k + 1) M, (g (n - 1) - g n) := by
+      apply Finset.sum_le_sum
+      intro n hn
+      rw [Finset.mem_Ico] at hn
+      have hn_ge3 : 3 ≤ n := by omega
+      have hn_pred_ge2 : 2 ≤ n - 1 := by omega
+      have hn_pos : (0 : ℝ) < (n : ℝ) := by exact_mod_cast (by omega : 0 < n)
+      have hn_pred_pos : (0 : ℝ) < ((n - 1 : ℕ) : ℝ) := by
+        exact_mod_cast (by omega : 0 < n - 1)
+      have hn_pred_cast : ((n - 1 : ℕ) : ℝ) = (n : ℝ) - 1 := by
+        rw [Nat.cast_sub (by omega : 1 ≤ n)]
+        simp
+      have hlog_pred_pos : 0 < Real.log ((n - 1 : ℕ) : ℝ) := by
+        apply Real.log_pos
+        exact_mod_cast (by omega : 1 < n - 1)
+      have hlog_pred_le : Real.log ((n - 1 : ℕ) : ℝ) ≤ Real.log (n : ℝ) :=
+        Real.log_le_log hn_pred_pos (by exact_mod_cast (by omega : n - 1 ≤ n))
+      have hlog_n_pos : 0 < Real.log (n : ℝ) := lt_of_lt_of_le hlog_pred_pos hlog_pred_le
+      have hinv_le_logdiff :
+          1 / (n : ℝ) ≤ Real.log (n : ℝ) - Real.log ((n - 1 : ℕ) : ℝ) := by
+        have hratio_pos : (0 : ℝ) < ((n - 1 : ℕ) : ℝ) / (n : ℝ) :=
+          div_pos hn_pred_pos hn_pos
+        have hlog_ineq := Real.log_le_sub_one_of_pos hratio_pos
+        rw [Real.log_div hn_pred_pos.ne' hn_pos.ne'] at hlog_ineq
+        have hsub : ((n - 1 : ℕ) : ℝ) / (n : ℝ) - 1 = -(1 / (n : ℝ)) := by
+          rw [hn_pred_cast]
+          field_simp [hn_pos.ne']
+          ring
+        linarith
+      have hdenom_pos : 0 < Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ) :=
+        mul_pos hlog_n_pos hlog_pred_pos
+      have hsq_le :
+          1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) ≤
+            (1 / (n : ℝ)) / (Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ)) := by
+        have h1 :
+            (1 / (n : ℝ)) / (Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ)) =
+              1 / ((n : ℝ) * (Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ))) := by
+          field_simp [hn_pos.ne', hlog_n_pos.ne', hlog_pred_pos.ne']
+        rw [h1]
+        apply one_div_le_one_div_of_le (mul_pos hn_pos hdenom_pos)
+        have h2 : Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ) ≤ (Real.log (n : ℝ)) ^ 2 := by
+          rw [sq]
+          exact mul_le_mul_of_nonneg_left hlog_pred_le hlog_n_pos.le
+        exact mul_le_mul_of_nonneg_left h2 hn_pos.le
+      have hdiff_eq :
+          (Real.log (n : ℝ) - Real.log ((n - 1 : ℕ) : ℝ)) /
+              (Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ)) =
+            g (n - 1) - g n := by
+        dsimp [g]
+        field_simp [hlog_n_pos.ne', hlog_pred_pos.ne']
+      calc
+        1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) ≤
+            (1 / (n : ℝ)) / (Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ)) := hsq_le
+        _ ≤ (Real.log (n : ℝ) - Real.log ((n - 1 : ℕ) : ℝ)) /
+              (Real.log (n : ℝ) * Real.log ((n - 1 : ℕ) : ℝ)) := by
+          exact div_le_div_of_nonneg_right hinv_le_logdiff hdenom_pos.le
+        _ = g (n - 1) - g n := hdiff_eq
+    have htelescope :
+        (∑ n ∈ Finset.Ico (k + 1) M, (g (n - 1) - g n)) ≤ g k := by
+      rw [Finset.sum_Ico_eq_sum_range]
+      have hrewrite :
+          (∑ i ∈ Finset.range (M - (k + 1)), (g (k + 1 + i - 1) - g (k + 1 + i))) =
+            ∑ i ∈ Finset.range (M - (k + 1)), (g (k + i) - g (k + (i + 1))) := by
+        apply Finset.sum_congr rfl
+        intro i _
+        have h1 : k + 1 + i - 1 = k + i := by omega
+        have h2 : k + 1 + i = k + (i + 1) := by omega
+        rw [h1, h2]
+      rw [hrewrite]
+      have hsub := Finset.sum_range_sub' (fun i => g (k + i)) (M - (k + 1))
+      rw [hsub]
+      have hlast_nonneg : 0 ≤ g (k + (M - (k + 1))) := by
+        dsimp [g]
+        have hge2 : (2 : ℝ) ≤ ((k + (M - (k + 1)) : ℕ) : ℝ) := by
+          exact_mod_cast (by omega : 2 ≤ k + (M - (k + 1)))
+        have hlp : 0 < Real.log ((k + (M - (k + 1)) : ℕ) : ℝ) :=
+          Real.log_pos (by linarith)
+        exact div_nonneg zero_le_one hlp.le
+      simp only [Nat.add_zero]
+      linarith
+    have hgk_le : g k ≤ 1 / Real.log x := by
+      dsimp [g]
+      exact one_div_le_one_div_of_le hlogx_pos hlogk_ge_logx
+    have htotal :
+        (∑ n ∈ Finset.Ico k M, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) ≤ 2 / Real.log x := by
+      rw [hsplit]
+      have : 1 / Real.log x + 1 / Real.log x = 2 / Real.log x := by ring
+      linarith
+    exact le_trans hsum_le_ico htotal
+
+@[blueprint "lem:finite-chain-erdos-le-initial-mass"
+  (statement := /-- There exists a constant $C_{\mathrm{err}}\geq 0$ such that
+  for every $x\geq2$, every real $X$, and every primitive set
+  $A\subseteq\mathbb N$ supported in $[x,X]$, the Erd\H{o}s sum of $A$ is at
+  most the total finite initial mass $\sum_n b_{x,X}(n)$ from
+  \cref{def:finite-chain-initial-mass} plus $C_{\mathrm{err}}/\log x$. -/)
+  (proof := /-- Put $b(n)=b_{x,X}(n)$ as in
+  \cref{def:finite-chain-initial-mass}, and let $C_{\mathrm{tail}}\geq 0$ be
+  the constant from \cref{lem:mangoldt-tail-upper-bound}. First prove the lower
+  bound $b(n)\geq -C_{\mathrm{tail}}/(n\log^2 n)$ for every $n$. If
+  $x\leq n\leq X$, then $n\geq2$; the finite incoming sum over $q$ with
+  $nq\leq X$ is bounded by $n^{-1}$ times the full tail at threshold $2$, using
+  \cref{lem:mangoldt-tail-finite-sum-le}, and
+  \cref{lem:mangoldt-tail-upper-bound} bounds this by
+  $(n\log n)^{-1}+C_{\mathrm{tail}}/(n\log^2 n)$. Outside $[x,X]$ the mass is
+  zero. By \cref{lem:finite-chain-initial-mass-sum-eq-cut-capacity}, the total
+  initial mass equals the nonnegative cut capacity, so the right-hand side is
+  nonnegative. It remains to bound each finite partial sum of
+  \cref{def:erdos-sum}. Fix a finite set of indices $s$ and restrict to the
+  finite interval $R=\{n:x\leq n\leq X\}$. Let $H(n)$ be the indicator that $n$
+  is divisible by some element of $A\cap s$. For each $r\in R$, the
+  contribution of $A\cap s$ at $r$ plus the $H$-weighted incoming contribution
+  from factor pairs $nq=r$ is at most $H(r)\nu_0(r)$. If $r\in A\cap s$, the
+  incoming term vanishes by \cref{def:primitive-set}; if $H(r)=0$, it vanishes
+  by definition; otherwise it is bounded by the full von Mangoldt divisor sum,
+  which is $\log r$ by \cref{lem:von-mangoldt-divisor-sum}. Summing these
+  inequalities over $r\in R$ and reindexing the fibers $(n,q)$ gives the
+  partial-sum bound by $\sum_{n\in R}H(n)b(n)$. Since $0\leq H(n)\leq1$ and
+  $b(n)+C_{\mathrm{tail}}/(n\log^2 n)\geq0$, this is at most
+  $\sum_{n\in R}b(n)+C_{\mathrm{tail}}\sum_{n\in R}(n\log^2 n)^{-1}$. Applying
+  \cref{lem:inv-mul-log-sq-sum-le-div-log} bounds the error sum by
+  $2C_{\mathrm{tail}}/\log x$, and
+  \cref{def:supported-in-interval,def:finite-chain-initial-mass} identifies
+  $\sum_{n\in R}b(n)$ with the t-sum. -/)
+  (title := /-- Hitting mass bounds the finite Erd\H{o}s sum -/)
+  (latexEnv := "lemma")]
+lemma finite_chain_erdos_le_initial_mass :
+    ∃ C_err : ℝ, 0 ≤ C_err ∧
+      ∀ (A : Set ℕ) (x X : ℝ), 2 ≤ x -> primitive_set A -> supported_in_interval A x X ->
+        erdos_sum A ≤ (∑' n : ℕ, finite_chain_initial_mass x X n) + C_err / Real.log x := by
+  classical
+  obtain ⟨C_tail, hC_tail_nonneg, htail_upper⟩ := mangoldt_tail_upper_bound
+  refine ⟨2 * C_tail, by linarith, ?_⟩
+  intro A x X hx hprim hsupp
+  have hmass_lower : ∀ n : ℕ,
+      -(C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) ≤ finite_chain_initial_mass x X n := by
+    intro n
+    rw [finite_chain_initial_mass]
+    by_cases hnint : x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X
+    · rw [if_pos hnint]
+      have hn_two : 2 ≤ n := by exact_mod_cast (le_trans hx hnint.1)
+      have hn_one : 1 ≤ n := by omega
+      have hlog_pos : 0 < Real.log (n : ℝ) := by
+        apply Real.log_pos
+        exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hn_two)
+      have hinner_le :
+          (∑' q : ℕ,
+            if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+              erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                Real.log ((n * q : ℕ) : ℝ)
+            else 0) ≤ (1 / (n : ℝ)) * mangoldt_tail_sum n 2 := by
+        apply tsum_le_of_sum_le'
+        · apply mul_nonneg
+          · positivity
+          · rw [mangoldt_tail_sum]
+            apply tsum_nonneg
+            intro q
+            split_ifs
+            · rw [mangoldt_tail_term]
+              exact div_nonneg ArithmeticFunction.vonMangoldt_nonneg (by positivity)
+            · norm_num
+        · intro s
+          have hpoint : ∀ q : ℕ,
+              (if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+                erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                  Real.log ((n * q : ℕ) : ℝ)
+              else 0) ≤
+                (1 / (n : ℝ)) *
+                  (if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) := by
+            intro q
+            by_cases hqcond : 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X
+            · rw [if_pos hqcond]
+              have hqreal : (2 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hqcond.1
+              rw [if_pos hqreal]
+              rw [erdos_weight, mangoldt_tail_term]
+              rw [Nat.cast_mul]
+              ring_nf
+              exact le_rfl
+            · rw [if_neg hqcond]
+              apply mul_nonneg
+              · positivity
+              · split_ifs
+                · rw [mangoldt_tail_term]
+                  exact div_nonneg ArithmeticFunction.vonMangoldt_nonneg (by positivity)
+                · norm_num
+          calc
+            (∑ q ∈ s,
+              if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+                erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                  Real.log ((n * q : ℕ) : ℝ)
+              else 0) ≤
+                ∑ q ∈ s,
+                  (1 / (n : ℝ)) *
+                    (if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) := by
+                apply Finset.sum_le_sum
+                intro q _
+                exact hpoint q
+            _ = (1 / (n : ℝ)) *
+                  ∑ q ∈ s,
+                    (if (2 : ℝ) ≤ (q : ℝ) then mangoldt_tail_term n q else 0) := by
+                rw [Finset.mul_sum]
+            _ ≤ (1 / (n : ℝ)) * mangoldt_tail_sum n 2 := by
+                exact mul_le_mul_of_nonneg_left
+                  (mangoldt_tail_finite_sum_le n hn_one 2 (by norm_num) s) (by positivity)
+      have hlog_2n_ge : Real.log (n : ℝ) ≤ Real.log ((n : ℝ) * (2 : ℝ)) := by
+        apply Real.log_le_log (by positivity)
+        linarith
+      have htail_le : mangoldt_tail_sum n 2 ≤
+          1 / Real.log (n : ℝ) + C_tail / (Real.log (n : ℝ)) ^ 2 := by
+        have hraw := (htail_upper n hn_one 2 (by norm_num)).2
+        have h1 : 1 / Real.log ((n : ℝ) * (2 : ℝ)) ≤ 1 / Real.log (n : ℝ) :=
+          one_div_le_one_div_of_le hlog_pos hlog_2n_ge
+        have h2 : C_tail / (Real.log ((n : ℝ) * (2 : ℝ))) ^ 2 ≤
+            C_tail / (Real.log (n : ℝ)) ^ 2 := by
+          apply div_le_div_of_nonneg_left hC_tail_nonneg (sq_pos_of_pos hlog_pos)
+          exact sq_le_sq' (by linarith) hlog_2n_ge
+        linarith
+      have hscaled_le : (1 / (n : ℝ)) * mangoldt_tail_sum n 2 ≤
+          erdos_weight n + C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) := by
+        calc
+          (1 / (n : ℝ)) * mangoldt_tail_sum n 2 ≤
+              (1 / (n : ℝ)) * (1 / Real.log (n : ℝ) + C_tail / (Real.log (n : ℝ)) ^ 2) := by
+              exact mul_le_mul_of_nonneg_left htail_le (by positivity)
+          _ = erdos_weight n + C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) := by
+              rw [erdos_weight]
+              ring_nf
+      linarith
+    · rw [if_neg hnint]
+      have hnonneg : 0 ≤ C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) := by positivity
+      linarith
+  have hRHS_nonneg :
+      0 ≤ (∑' n : ℕ, finite_chain_initial_mass x X n) + (2 * C_tail) / Real.log x := by
+    have hlogx_pos : 0 < Real.log x := Real.log_pos (by linarith)
+    have hcut_nonneg : 0 ≤ cut_capacity x X := by
+      rw [cut_capacity]
+      apply tsum_nonneg
+      intro r
+      split_ifs
+      · apply mul_nonneg (by positivity)
+        apply Finset.sum_nonneg
+        intro q _
+        split_ifs
+        · exact ArithmeticFunction.vonMangoldt_nonneg
+        · norm_num
+      · norm_num
+    rw [finite_chain_initial_mass_sum_eq_cut_capacity x X hx]
+    have hterm : 0 ≤ (2 * C_tail) / Real.log x := by positivity
+    linarith
+  rw [erdos_sum]
+  apply tsum_le_of_sum_le'
+  · exact hRHS_nonneg
+  · intro s
+    let M : ℕ := ⌈X⌉₊ + 1
+    let R : Finset ℕ := (Finset.range M).filter (fun n => x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X)
+    have hb_tsum_eq :
+        (∑' n : ℕ, finite_chain_initial_mass x X n) =
+          ∑ n ∈ R, finite_chain_initial_mass x X n := by
+      exact tsum_eq_sum (s := R) (fun n hn => by
+        have hnnot : ¬ (x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X) := by
+          intro hnx
+          apply hn
+          have hn_le_ceil : n ≤ ⌈X⌉₊ := by
+            exact_mod_cast (le_trans hnx.2 (Nat.le_ceil X))
+          have hn_lt_M : n < M := by
+            dsimp [M]
+            omega
+          simp [R, hn_lt_M, hnx]
+        rw [finite_chain_initial_mass, if_neg hnnot])
+    have hleft_eq :
+        (∑ i ∈ s, A.indicator erdos_weight i) =
+          ∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0 := by
+      have hs_eq :
+          (∑ i ∈ s, A.indicator erdos_weight i) =
+            ∑ i ∈ s.filter (fun i => i ∈ A), erdos_weight i := by
+        rw [Finset.sum_filter]
+        apply Finset.sum_congr rfl
+        intro i hi
+        by_cases hiA : i ∈ A
+        · simp [Set.indicator_of_mem hiA, hiA]
+        · simp [Set.indicator_of_notMem hiA, hiA]
+      have hR_eq :
+          (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) =
+            ∑ n ∈ R.filter (fun n => n ∈ s ∧ n ∈ A), erdos_weight n := by
+        exact (Finset.sum_filter (s := R)
+          (p := fun n => n ∈ s ∧ n ∈ A) (f := erdos_weight)).symm
+      rw [hs_eq, hR_eq]
+      symm
+      apply Finset.sum_bij (fun n hn => n)
+      · intro n hn
+        simp only [Finset.mem_filter] at hn ⊢
+        exact ⟨hn.2.1, hn.2.2⟩
+      · intro a ha b hb h
+        exact h
+      · intro b hb
+        simp only [Finset.mem_filter] at hb
+        have hB := hsupp b hb.2
+        have hb_le_ceil : b ≤ ⌈X⌉₊ := by
+          exact_mod_cast (le_trans hB.2 (Nat.le_ceil X))
+        have hb_lt_M : b < M := by
+          dsimp [M]
+          omega
+        refine ⟨b, ?_, rfl⟩
+        simp [R, hb_lt_M, hB, hb]
+      · intro n hn
+        rfl
+    have hmass_finite (n : ℕ) (hnR : n ∈ R) :
+        finite_chain_initial_mass x X n = erdos_weight n -
+          ∑ q ∈ Finset.range M,
+            if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+              erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                Real.log ((n * q : ℕ) : ℝ)
+            else 0 := by
+      have hnR' : n < M ∧ x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X := by
+        simpa [R] using hnR
+      have hnint : x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X := hnR'.2
+      rw [finite_chain_initial_mass, if_pos hnint]
+      congr 1
+      exact tsum_eq_sum (s := Finset.range M) (fun q hq => by
+        have hqnot : ¬ (2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X) := by
+          intro hcond
+          apply hq
+          have hq_le_prod : q ≤ n * q := by
+            have hn_one : 1 ≤ n := by
+              have hn_two : 2 ≤ n := by exact_mod_cast (le_trans hx hnint.1)
+              omega
+            exact Nat.le_mul_of_pos_left q hn_one
+          have hq_le_X : (q : ℝ) ≤ X := by
+            have : ((q : ℕ) : ℝ) ≤ ((n * q : ℕ) : ℝ) := by
+              exact_mod_cast hq_le_prod
+            exact le_trans this hcond.2
+          have hq_le_ceil : q ≤ ⌈X⌉₊ := by
+            exact_mod_cast (le_trans hq_le_X (Nat.le_ceil X))
+          have hq_lt_M : q < M := by
+            dsimp [M]
+            omega
+          exact Finset.mem_range.mpr hq_lt_M
+        rw [if_neg hqnot])
+    have hfinite :
+        (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) ≤
+          (∑ n ∈ R, finite_chain_initial_mass x X n) + (2 * C_tail) / Real.log x := by
+      let shadow : ℕ → ℝ := fun n =>
+        if ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ n then 1 else 0
+      let pairs : Finset (ℕ × ℕ) := R.product (Finset.range M)
+      let pairTerm : ℕ × ℕ → ℝ := fun p =>
+        if 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X) then
+          shadow p.1 * (erdos_weight (p.1 * p.2) *
+            ArithmeticFunction.vonMangoldt p.2 / Real.log ((p.1 * p.2 : ℕ) : ℝ))
+        else 0
+      have hshadow_le_one : ∀ n, shadow n ≤ 1 := by
+        intro n
+        dsimp [shadow]
+        split_ifs <;> norm_num
+      have hfiber_bound : ∀ r ∈ R,
+          ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p ≤ erdos_weight r := by
+        intro r hr
+        have hrR : r < M ∧ x ≤ (r : ℝ) ∧ (r : ℝ) ≤ X := by
+          simpa [R] using hr
+        have hr_two : 2 ≤ r := by exact_mod_cast (le_trans hx hrR.2.1)
+        have hr_ne : r ≠ 0 := by omega
+        have hlog_pos : 0 < Real.log (r : ℝ) := by
+          apply Real.log_pos
+          exact_mod_cast (lt_of_lt_of_le Nat.one_lt_two hr_two)
+        let F : Finset (ℕ × ℕ) := pairs.filter (fun p => p.1 * p.2 = r)
+        let boundTerm : ℕ → ℝ := fun q =>
+          erdos_weight r * ArithmeticFunction.vonMangoldt q / Real.log (r : ℝ)
+        have hbound_nonneg : ∀ q, 0 ≤ boundTerm q := by
+          intro q
+          dsimp [boundTerm]
+          have hw : 0 ≤ erdos_weight r := by
+            rw [erdos_weight]
+            positivity
+          exact div_nonneg (mul_nonneg hw ArithmeticFunction.vonMangoldt_nonneg) hlog_pos.le
+        have hpoint : ∀ p ∈ F, pairTerm p ≤ boundTerm p.2 := by
+          intro p hp
+          have hp' := Finset.mem_filter.mp hp
+          have hprod : p.1 * p.2 = r := hp'.2
+          dsimp [pairTerm, boundTerm]
+          by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
+          · rw [if_pos hcond, hprod]
+            simpa using
+              mul_le_mul_of_nonneg_right (hshadow_le_one p.1) (hbound_nonneg p.2)
+          · rw [if_neg hcond]
+            exact hbound_nonneg p.2
+        have hsum_le : (∑ p ∈ F, pairTerm p) ≤ ∑ p ∈ F, boundTerm p.2 := by
+          apply Finset.sum_le_sum
+          intro p hp
+          exact hpoint p hp
+        have hsum_image : (∑ p ∈ F, boundTerm p.2) =
+            ∑ q ∈ F.image Prod.snd, boundTerm q := by
+          symm
+          rw [Finset.sum_image]
+          intro a ha b hb hab
+          have ha' := Finset.mem_filter.mp ha
+          have hb' := Finset.mem_filter.mp hb
+          have hpa : a.1 * a.2 = r := ha'.2
+          have hpb : b.1 * b.2 = r := hb'.2
+          have ha2_pos : 0 < a.2 := by
+            by_contra hnot
+            have ha2z : a.2 = 0 := Nat.eq_zero_of_not_pos hnot
+            rw [ha2z] at hpa
+            simp at hpa
+            exact hr_ne hpa.symm
+          have hfst : a.1 = b.1 := by
+            apply Nat.mul_right_cancel ha2_pos
+            rw [hpa, hab, hpb]
+          exact Prod.ext hfst hab
+        have himage_subset : F.image Prod.snd ⊆ r.divisors := by
+          intro q hq
+          rcases Finset.mem_image.mp hq with ⟨p, hp, rfl⟩
+          have hp' := Finset.mem_filter.mp hp
+          have hprod : p.1 * p.2 = r := hp'.2
+          have hqdiv : p.2 ∣ r := by
+            refine ⟨p.1, ?_⟩
+            rw [mul_comm, hprod]
+          exact Nat.mem_divisors.mpr ⟨hqdiv, hr_ne⟩
+        have himage_le : (∑ q ∈ F.image Prod.snd, boundTerm q) ≤
+            ∑ q ∈ r.divisors, boundTerm q := by
+          apply Finset.sum_le_sum_of_subset_of_nonneg
+          · exact himage_subset
+          · intro q hq hqnot
+            exact hbound_nonneg q
+        have hdiv_eq : (∑ q ∈ r.divisors, boundTerm q) = erdos_weight r := by
+          dsimp [boundTerm]
+          calc
+            (∑ q ∈ r.divisors,
+              erdos_weight r * ArithmeticFunction.vonMangoldt q / Real.log (r : ℝ)) =
+                (erdos_weight r / Real.log (r : ℝ)) *
+                  ∑ q ∈ r.divisors, ArithmeticFunction.vonMangoldt q := by
+                rw [Finset.mul_sum]
+                apply Finset.sum_congr rfl
+                intro q hq
+                ring
+            _ = (erdos_weight r / Real.log (r : ℝ)) * Real.log (r : ℝ) := by
+                rw [von_mangoldt_divisor_sum]
+            _ = erdos_weight r := by
+                field_simp [hlog_pos.ne']
+        calc
+          (∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p) =
+              ∑ p ∈ F, pairTerm p := rfl
+          _ ≤ ∑ p ∈ F, boundTerm p.2 := hsum_le
+          _ = ∑ q ∈ F.image Prod.snd, boundTerm q := hsum_image
+          _ ≤ ∑ q ∈ r.divisors, boundTerm q := himage_le
+          _ = erdos_weight r := hdiv_eq
+      have hfiber_zero_active : ∀ r ∈ R, r ∈ s ∧ r ∈ A ->
+          ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p = 0 := by
+        intro r hr hactive
+        apply Finset.sum_eq_zero
+        intro p hp
+        have hp' := Finset.mem_filter.mp hp
+        have hprod : p.1 * p.2 = r := hp'.2
+        dsimp [pairTerm]
+        by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
+        · rw [if_pos hcond]
+          have hshadow_p1 : shadow p.1 = 0 := by
+            dsimp [shadow]
+            rw [if_neg]
+            intro hex
+            rcases hex with ⟨a, has, haA, hadiv⟩
+            have hadivr : a ∣ r := by
+              rcases hadiv with ⟨k, hk⟩
+              refine ⟨k * p.2, ?_⟩
+              rw [← hprod, hk, Nat.mul_assoc]
+            have har : a = r := hprim.eq haA hactive.2 hadivr
+            subst a
+            have hrR : r < M ∧ x ≤ (r : ℝ) ∧ (r : ℝ) ≤ X := by
+              simpa [R] using hr
+            have hp2_gt_one : 1 < p.2 := by omega
+            have hp1_pos : 0 < p.1 := by
+              by_contra hp10
+              have hp1z : p.1 = 0 := Nat.eq_zero_of_not_pos hp10
+              rw [hp1z] at hprod
+              simp at hprod
+              have hr_two : 2 ≤ r := by exact_mod_cast (le_trans hx hrR.2.1)
+              omega
+            have hp1_lt_r : p.1 < r := by
+              rw [← hprod]
+              exact lt_mul_of_one_lt_right hp1_pos hp2_gt_one
+            exact not_le_of_gt hp1_lt_r (Nat.le_of_dvd hp1_pos hadiv)
+          rw [hshadow_p1]
+          ring
+        · rw [if_neg hcond]
+      have hshadow_factor_zero : ∀ r ∈ R, shadow r = 0 ->
+          ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p = 0 := by
+        intro r hr hsr
+        apply Finset.sum_eq_zero
+        intro p hp
+        have hp' := Finset.mem_filter.mp hp
+        have hprod : p.1 * p.2 = r := hp'.2
+        dsimp [pairTerm]
+        by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
+        · rw [if_pos hcond]
+          have hshadow_p1 : shadow p.1 = 0 := by
+            dsimp [shadow] at hsr ⊢
+            by_cases hex : ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ p.1
+            · exfalso
+              have hexr : ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ r := by
+                rcases hex with ⟨a, has, haA, hadiv⟩
+                refine ⟨a, has, haA, ?_⟩
+                rcases hadiv with ⟨k, hk⟩
+                refine ⟨k * p.2, ?_⟩
+                rw [← hprod, hk, Nat.mul_assoc]
+              rw [if_pos hexr] at hsr
+              norm_num at hsr
+            · rw [if_neg hex]
+          rw [hshadow_p1]
+          ring
+        · rw [if_neg hcond]
+      have hfiber : ∀ r ∈ R,
+          (if r ∈ s ∧ r ∈ A then erdos_weight r else 0) +
+            ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p ≤
+              shadow r * erdos_weight r := by
+        intro r hr
+        by_cases hactive : r ∈ s ∧ r ∈ A
+        · have hsh : shadow r = 1 := by
+            dsimp [shadow]
+            rw [if_pos]
+            exact ⟨r, hactive.1, hactive.2, dvd_rfl⟩
+          rw [if_pos hactive, hfiber_zero_active r hr hactive, hsh]
+          linarith
+        · rw [if_neg hactive]
+          by_cases hshadow : shadow r = 0
+          · rw [hshadow_factor_zero r hr hshadow, hshadow]
+            norm_num
+          · have hsh : shadow r = 1 := by
+              dsimp [shadow] at hshadow ⊢
+              by_cases hex : ∃ a : ℕ, a ∈ s ∧ a ∈ A ∧ a ∣ r
+              · rw [if_pos hex]
+              · rw [if_neg hex] at hshadow
+                exfalso
+                exact hshadow rfl
+            rw [hsh]
+            simpa using hfiber_bound r hr
+      have hsum_fiber :
+          (∑ r ∈ R, ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = r), pairTerm p) =
+            ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p := by
+        exact Finset.sum_fiberwise_eq_sum_filter pairs R
+          (fun p : ℕ × ℕ => p.1 * p.2) pairTerm
+      have hupper :
+          (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) +
+              ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p ≤
+            ∑ n ∈ R, shadow n * erdos_weight n := by
+        calc
+          (∑ n ∈ R, if n ∈ s ∧ n ∈ A then erdos_weight n else 0) +
+              ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p =
+                ∑ n ∈ R,
+                  ((if n ∈ s ∧ n ∈ A then erdos_weight n else 0) +
+                    ∑ p ∈ pairs.filter (fun p => p.1 * p.2 = n), pairTerm p) := by
+                rw [Finset.sum_add_distrib, hsum_fiber]
+          _ ≤ ∑ n ∈ R, shadow n * erdos_weight n := by
+                apply Finset.sum_le_sum
+                intro n hn
+                exact hfiber n hn
+      have hpair_all_eq :
+          (∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p) =
+            ∑ p ∈ pairs, pairTerm p := by
+        apply Finset.sum_subset
+        · intro p hp
+          exact (Finset.mem_filter.mp hp).1
+        · intro p hpairs hpnot
+          have hprod_not : p.1 * p.2 ∉ R := by
+            intro hpR
+            apply hpnot
+            simp [hpairs, hpR]
+          have hp : p.1 ∈ R ∧ p.2 ∈ Finset.range M := by
+            simpa [pairs] using hpairs
+          dsimp [pairTerm]
+          by_cases hcond : 2 ≤ p.2 ∧ (((p.1 * p.2 : ℕ) : ℝ) ≤ X)
+          · exfalso
+            apply hprod_not
+            have hp1R : p.1 < M ∧ x ≤ (p.1 : ℝ) ∧ (p.1 : ℝ) ≤ X := by
+              simpa [R] using hp.1
+            have hp2one : 1 ≤ p.2 := by omega
+            have hp1_le_prod : p.1 ≤ p.1 * p.2 :=
+              Nat.le_mul_of_pos_right p.1 hp2one
+            have hxprod : x ≤ ((p.1 * p.2 : ℕ) : ℝ) := by
+              have : (p.1 : ℝ) ≤ ((p.1 * p.2 : ℕ) : ℝ) := by
+                exact_mod_cast hp1_le_prod
+              exact le_trans hp1R.2.1 this
+            have hprod_le_ceil : p.1 * p.2 ≤ ⌈X⌉₊ := by
+              exact_mod_cast (le_trans hcond.2 (Nat.le_ceil X))
+            have hprod_lt_M : p.1 * p.2 < M := by
+              dsimp [M]
+              omega
+            simp only [R, Finset.mem_filter, Finset.mem_range]
+            exact ⟨hprod_lt_M, by simpa [Nat.cast_mul] using hxprod,
+              by simpa [Nat.cast_mul] using hcond.2⟩
+          · rw [if_neg hcond]
+      have hpair_product :
+          (∑ p ∈ pairs, pairTerm p) =
+            ∑ n ∈ R, shadow n *
+              ∑ q ∈ Finset.range M,
+                if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+                  erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                    Real.log ((n * q : ℕ) : ℝ)
+                else 0 := by
+        dsimp [pairs, pairTerm]
+        rw [Finset.sum_product]
+        apply Finset.sum_congr rfl
+        intro n hn
+        simp only [Prod.fst, Prod.snd]
+        rw [Finset.mul_sum]
+        apply Finset.sum_congr rfl
+        intro q hq
+        by_cases hcond : 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X
+        · simp [hcond]
+        · simp [hcond]
+      have hshadow_bound :
+          (∑ n ∈ R, shadow n * erdos_weight n) ≤
+            (∑ n ∈ R, finite_chain_initial_mass x X n) + (2 * C_tail) / Real.log x +
+              ∑ p ∈ pairs.filter (fun p => p.1 * p.2 ∈ R), pairTerm p := by
+        rw [hpair_all_eq, hpair_product]
+        have herr_sum :
+            (∑ n ∈ R, C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) ≤
+              (2 * C_tail) / Real.log x := by
+          have hR_int : ∀ n ∈ R, x ≤ (n : ℝ) ∧ (n : ℝ) ≤ X := by
+            intro n hn
+            exact (Finset.mem_filter.mp hn).2
+          have htele := inv_mul_log_sq_sum_le_div_log x X hx R hR_int
+          calc
+            (∑ n ∈ R, C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) =
+                C_tail * ∑ n ∈ R, 1 / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2) := by
+              rw [Finset.mul_sum]
+              apply Finset.sum_congr rfl
+              intro n _
+              ring
+            _ ≤ C_tail * (2 / Real.log x) := by
+              exact mul_le_mul_of_nonneg_left htele hC_tail_nonneg
+            _ = (2 * C_tail) / Real.log x := by ring
+        have hsum_le :
+            (∑ n ∈ R, shadow n * finite_chain_initial_mass x X n) ≤
+              (∑ n ∈ R, finite_chain_initial_mass x X n) + (2 * C_tail) / Real.log x := by
+          have hpt :
+              (∑ n ∈ R, shadow n * finite_chain_initial_mass x X n) ≤
+                ∑ n ∈ R, (finite_chain_initial_mass x X n +
+                  C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)) := by
+            apply Finset.sum_le_sum
+            intro n _
+            let e : ℝ := C_tail / ((n : ℝ) * (Real.log (n : ℝ)) ^ 2)
+            have he_nonneg : 0 ≤ e := by dsimp [e]; positivity
+            have hbe_nonneg : 0 ≤ finite_chain_initial_mass x X n + e := by
+              have hl := hmass_lower n
+              dsimp [e]
+              linarith
+            have h1 : shadow n * (finite_chain_initial_mass x X n + e) ≤
+                1 * (finite_chain_initial_mass x X n + e) :=
+              mul_le_mul_of_nonneg_right (hshadow_le_one n) hbe_nonneg
+            have hsn : 0 ≤ shadow n := by dsimp [shadow]; split_ifs <;> norm_num
+            have h2 : 0 ≤ shadow n * e := mul_nonneg hsn he_nonneg
+            dsimp [e] at h1 h2 ⊢
+            linarith
+          rw [Finset.sum_add_distrib] at hpt
+          linarith
+        calc
+          (∑ n ∈ R, shadow n * erdos_weight n) =
+              ∑ n ∈ R, shadow n *
+                (finite_chain_initial_mass x X n +
+                  ∑ q ∈ Finset.range M,
+                    if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+                      erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                        Real.log ((n * q : ℕ) : ℝ)
+                    else 0) := by
+                apply Finset.sum_congr rfl
+                intro n hn
+                rw [hmass_finite n hn]
+                ring
+          _ = (∑ n ∈ R, shadow n * finite_chain_initial_mass x X n) +
+              ∑ n ∈ R, shadow n *
+                ∑ q ∈ Finset.range M,
+                  if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+                    erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                      Real.log ((n * q : ℕ) : ℝ)
+                  else 0 := by
+                rw [← Finset.sum_add_distrib]
+                apply Finset.sum_congr rfl
+                intro n hn
+                ring
+          _ ≤ (∑ n ∈ R, finite_chain_initial_mass x X n) + (2 * C_tail) / Real.log x +
+              ∑ n ∈ R, shadow n *
+                ∑ q ∈ Finset.range M,
+                  if 2 ≤ q ∧ ((n * q : ℕ) : ℝ) ≤ X then
+                    erdos_weight (n * q) * ArithmeticFunction.vonMangoldt q /
+                      Real.log ((n * q : ℕ) : ℝ)
+                  else 0 := by
+                linarith
+      linarith
+    rw [hb_tsum_eq, hleft_eq]
+    exact hfinite
+
+@[blueprint "lem:finite-chain-cut-bound"
+  (statement := /-- There exists an absolute constant $C_{\mathrm{err}}\geq 0$
+  such that, for every $x\geq 2$, every real $X$, and every primitive set
+  $A\subseteq\mathbb N$ supported in $[x,X]$, the Erd\H{o}s sum of $A$ is at
+  most the finite cut capacity \cref{def:cut-capacity} plus
+  $C_{\mathrm{err}}/\log x$. -/)
+  (proof := /-- Combine \cref{lem:finite-chain-erdos-le-initial-mass} with the
+  exact reindexing identity
+  \cref{lem:finite-chain-initial-mass-sum-eq-cut-capacity}. -/)
+  (title := /-- Finite chain cut bound (Mertens-only) -/)
+  (latexEnv := "lemma")]
+lemma finite_chain_cut_bound :
+    ∃ C_err : ℝ, 0 ≤ C_err ∧
+      ∀ (A : Set ℕ) (x X : ℝ), 2 ≤ x -> primitive_set A -> supported_in_interval A x X ->
+        erdos_sum A ≤ cut_capacity x X + C_err / Real.log x := by
+  obtain ⟨C_err, hC_nonneg, hbound⟩ := finite_chain_erdos_le_initial_mass
+  refine ⟨C_err, hC_nonneg, ?_⟩
+  intro A x X hx hprim hsupp
+  calc
+    erdos_sum A ≤ (∑' n : ℕ, finite_chain_initial_mass x X n) + C_err / Real.log x :=
+      hbound A x X hx hprim hsupp
+    _ = cut_capacity x X + C_err / Real.log x := by
+      rw [finite_chain_initial_mass_sum_eq_cut_capacity x X hx]
+
+@[blueprint "lem:finite-large-primitive-bound"
+  (statement := /-- There is a nonnegative real constant $C$ satisfying
+  \cref{def:erdos1196-finite-bound}: every primitive set supported in a finite
+  interval $[x,X]$ with $2\leq x\leq X$ has Erd\H{o}s sum at most
+  $1+C/\log x$. -/)
+  (proof := /-- Combine the Mertens-only cut bound
+  \cref{lem:finite-chain-cut-bound}, \cref{lem:cut-capacity-le-tail-majorant},
+  and \cref{lem:tail-majorant-bound}. -/)
+  (title := /-- Finite large primitive-set bound -/)
+  (latexEnv := "lemma")]
+lemma finite_large_primitive_bound :
+    ∃ C : ℝ, erdos1196_finite_bound C := by
+  obtain ⟨C1, hC1_nonneg, hC1_bound⟩ := tail_majorant_bound
+  obtain ⟨C2, hC2_nonneg, hC2_bound⟩ := finite_chain_cut_bound
+  refine ⟨C1 + C2, by linarith, ?_⟩
+  intro x X hx _ A hprim hsupp
+  calc
+    erdos_sum A ≤ cut_capacity x X + C2 / Real.log x := hC2_bound A x X hx hprim hsupp
+    _ ≤ tail_majorant x + C2 / Real.log x := by
+      linarith [cut_capacity_le_tail_majorant x X hx]
+    _ ≤ (1 + C1 / Real.log x) + C2 / Real.log x := by
+      linarith [hC1_bound x hx]
+    _ = 1 + (C1 + C2) / Real.log x := by ring
 
 @[blueprint "thm:erdos-sarkozy-szemeredi-1196"
   (statement := /-- There exists a nonnegative real constant $C$ such that, for
